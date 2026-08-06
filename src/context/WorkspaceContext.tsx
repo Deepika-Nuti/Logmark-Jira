@@ -10,7 +10,6 @@ import {
   DEFAULT_MEMBERS, 
   ORG_MEMBER_EMAIL_ROLES, 
   sanitizeAndDeduplicateMembers, 
-  normalizeMemberReference, 
   lookupMemberByEmail 
 } from '../config/members';
 
@@ -1371,6 +1370,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           role: m.role,
           avatar_color: m.avatarColor,
         }));
+
+        const featuresPayload = finalTasks
+          .filter(t => t.type === 'FEATURE')
+          .map(t => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || '',
+            status: t.status,
             priority: t.priority,
             due_date: t.dueDate || null,
             assignee: t.assignee || null,
@@ -1506,6 +1513,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         handleAddMember,
         handleRemoveMember,
         importWorkspaceData,
+        registerOrMergeMember,
       }}
     >
       {children}

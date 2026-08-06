@@ -454,6 +454,7 @@ function MainAppContent() {
         finalMembers.push({
           id: 'MEM-' + Math.floor(100 + Math.random() * 900),
           name: cleanName,
+          email: '',
           role: 'DEVELOPER',
           avatarColor: colors[Math.floor(Math.random() * colors.length)]
         });

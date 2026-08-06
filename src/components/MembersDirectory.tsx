@@ -17,7 +17,7 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
   onAddMember,
   onRemoveMember,
 }) => {
-  const { currentUserId, currentUser } = useAuth();
+  useAuth();
   const { userRole } = useWorkspace();
   const isEmployee = userRole === 'EMPLOYEE' || userRole === 'INTERN';
   const [name, setName] = useState('');
