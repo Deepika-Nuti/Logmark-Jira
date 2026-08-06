@@ -22,12 +22,21 @@ interface KanbanBoardProps {
 }
 
 const COLUMNS: BoardColumn[] = [
-  { id: 'BACKLOG', title: 'Backlog', color: 'var(--status-backlog-text)' },
-  { id: 'TODO', title: 'To Do', color: 'var(--status-todo-text)' },
-  { id: 'IN_PROGRESS', title: 'In Progress', color: 'var(--status-progress-text)' },
-  { id: 'IN_REVIEW', title: 'In Review', color: 'var(--status-review-text)' },
-  { id: 'DONE', title: 'Done', color: 'var(--status-done-text)' },
+  { id: 'BACKLOG',     title: 'Backlog',      color: 'var(--status-backlog-text)' },
+  { id: 'TODO',        title: 'To Do',        color: 'var(--status-todo-text)' },
+  { id: 'IN_PROGRESS', title: 'In Progress',  color: 'var(--status-progress-text)' },
+  { id: 'IN_REVIEW',   title: 'In Review',    color: 'var(--status-review-text)' },
+  { id: 'DONE',        title: 'Done',         color: 'var(--status-done-text)' },
 ];
+
+// Accent colour per column — used only for the top border and header icon
+const COLUMN_ACCENT: Record<string, string> = {
+  BACKLOG:     '#64748b',
+  TODO:        '#3b82f6',
+  IN_PROGRESS: '#f97316',
+  IN_REVIEW:   '#a855f7',
+  DONE:        '#10b981',
+};
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   tasks,
@@ -64,89 +73,35 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const index = Math.abs(hash % colors.length);
-    return colors[index];
+    return colors[Math.abs(hash % colors.length)];
   };
 
   const getPriorityStripeColor = (priority: string) => {
     switch (priority) {
       case 'CRITICAL': return '#ef4444';
-      case 'HIGH': return '#f97316';
-      case 'MEDIUM': return '#3b82f6';
-      default: return '#94a3b8';
+      case 'HIGH':     return '#f97316';
+      case 'MEDIUM':   return '#3b82f6';
+      default:         return '#94a3b8';
     }
   };
 
   const getPriorityBadgeStyle = (priority: string) => {
     switch (priority) {
-      case 'CRITICAL':
-        return { backgroundColor: 'var(--priority-critical-bg)', color: 'var(--priority-critical-text)' };
-      case 'HIGH':
-        return { backgroundColor: 'var(--priority-high-bg)', color: 'var(--priority-high-text)' };
-      case 'MEDIUM':
-        return { backgroundColor: 'var(--priority-medium-bg)', color: 'var(--priority-medium-text)' };
-      default:
-        return { backgroundColor: 'var(--priority-low-bg)', color: 'var(--priority-low-text)' };
+      case 'CRITICAL': return { backgroundColor: 'var(--priority-critical-bg)', color: 'var(--priority-critical-text)' };
+      case 'HIGH':     return { backgroundColor: 'var(--priority-high-bg)',     color: 'var(--priority-high-text)' };
+      case 'MEDIUM':   return { backgroundColor: 'var(--priority-medium-bg)',   color: 'var(--priority-medium-text)' };
+      default:         return { backgroundColor: 'var(--priority-low-bg)',      color: 'var(--priority-low-text)' };
     }
   };
 
   const getStatusIcon = (status: TaskStatus, color: string) => {
+    const props = { size: 13, style: { color, flexShrink: 0 } };
     switch (status) {
-      case 'BACKLOG':
-        return <HelpCircle size={14} style={{ color }} />;
-      case 'TODO':
-        return <Circle size={14} style={{ color }} />;
-      case 'IN_PROGRESS':
-        return <Play size={14} style={{ color, fill: color }} />;
-      case 'IN_REVIEW':
-        return <Eye size={14} style={{ color }} />;
-      default:
-        return <CheckCircle2 size={14} style={{ color }} />;
-    }
-  };
-
-  const getColumnStyle = (columnId: TaskStatus) => {
-    switch (columnId) {
-      case 'BACKLOG':
-        return {
-          bg: 'var(--status-backlog-bg)',
-          border: 'var(--status-backlog-border)',
-          text: 'var(--status-backlog-text)',
-          pill: 'var(--status-backlog-pill)',
-          topBorder: '#64748b'
-        };
-      case 'TODO':
-        return {
-          bg: 'var(--status-todo-bg)',
-          border: 'var(--status-todo-border)',
-          text: 'var(--status-todo-text)',
-          pill: 'var(--status-todo-pill)',
-          topBorder: '#3b82f6'
-        };
-      case 'IN_PROGRESS':
-        return {
-          bg: 'var(--status-progress-bg)',
-          border: 'var(--status-progress-border)',
-          text: 'var(--status-progress-text)',
-          pill: 'var(--status-progress-pill)',
-          topBorder: '#f97316'
-        };
-      case 'IN_REVIEW':
-        return {
-          bg: 'var(--status-review-bg)',
-          border: 'var(--status-review-border)',
-          text: 'var(--status-review-text)',
-          pill: 'var(--status-review-pill)',
-          topBorder: '#a855f7'
-        };
-      default:
-        return {
-          bg: 'var(--status-done-bg)',
-          border: 'var(--status-done-border)',
-          text: 'var(--status-done-text)',
-          pill: 'var(--status-done-pill)',
-          topBorder: '#10b981'
-        };
+      case 'BACKLOG':     return <HelpCircle {...props} />;
+      case 'TODO':        return <Circle {...props} />;
+      case 'IN_PROGRESS': return <Play {...props} style={{ ...props.style, fill: color }} />;
+      case 'IN_REVIEW':   return <Eye {...props} />;
+      default:            return <CheckCircle2 {...props} />;
     }
   };
 
@@ -159,25 +114,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setDraggedOverColumn(status);
   };
 
-  const handleDragLeave = () => {
-    setDraggedOverColumn(null);
-  };
+  const handleDragLeave = () => setDraggedOverColumn(null);
 
   const handleDrop = (e: React.DragEvent, targetStatus: TaskStatus) => {
     e.preventDefault();
     setDraggedOverColumn(null);
     setDraggedTaskId(null);
     const taskId = e.dataTransfer.getData('text/plain');
-    if (taskId) {
-      onStatusChange(taskId, targetStatus);
-    }
-  };
-
-  const getProgressBarText = (percent: number) => {
-    const totalBlocks = 10;
-    const filledBlocks = Math.min(totalBlocks, Math.round(percent / 10));
-    const emptyBlocks = Math.max(0, totalBlocks - filledBlocks);
-    return '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+    if (taskId) onStatusChange(taskId, targetStatus);
   };
 
   const getParentFeature = (task: Task) => {
@@ -185,26 +129,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     return allTasks.find(t => t.id === task.parentFeatureId && t.type === 'FEATURE');
   };
 
+  // Format due date compactly
+  const formatDue = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  const isOverdue = (dateStr: string) =>
+    dateStr && new Date(dateStr) < new Date() ? true : false;
+
   if (tasks.length === 0) {
     return (
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1rem',
-        padding: '6rem 2rem',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
-        border: '1px solid var(--border-color)',
-        width: '100%',
-        marginTop: '1rem'
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: '1rem', padding: '5rem 2rem',
+        textAlign: 'center', color: 'var(--text-muted)',
+        backgroundColor: 'var(--bg-card)', borderRadius: '16px',
+        border: '1px solid var(--border-color)', width: '100%', marginTop: '1rem'
       }}>
-        <span style={{ fontSize: '3rem' }}>📋</span>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>No work items</h3>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: 0 }}>
+        <span style={{ fontSize: '2.5rem' }}>📋</span>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>No work items</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '360px', margin: 0 }}>
           Create one to get started.
         </p>
       </div>
@@ -217,32 +160,33 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     return taskList.filter(t => {
       const name = currentUserName.toLowerCase();
       if (!name) return false;
-      const assigneeMatch = t.assignee && t.assignee.toLowerCase() === name;
-      const reporterMatch = t.reporter && t.reporter.toLowerCase() === name;
-      const ownerMatch = t.owner && t.owner.toLowerCase().includes(name);
-      const createdByMatch = t.createdBy && t.createdBy.toLowerCase() === name;
-      return assigneeMatch || reporterMatch || ownerMatch || createdByMatch;
+      return (
+        (t.assignee  && t.assignee.toLowerCase()  === name) ||
+        (t.reporter  && t.reporter.toLowerCase()  === name) ||
+        (t.owner     && t.owner.toLowerCase().includes(name)) ||
+        (t.createdBy && t.createdBy.toLowerCase() === name)
+      );
     });
   };
 
   const visibleTasks = applyRoleVisibility(
-    HIERARCHY_ENABLED 
+    HIERARCHY_ENABLED
       ? (showFeatures ? tasks : tasks.filter(t => t.type !== 'FEATURE'))
       : tasks
   );
 
   return (
-    <div className="kanban-board-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-      
-      {/* Show Features Toggle Switch */}
+    <div className="kanban-board-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+
+      {/* Show Features Toggle */}
       {HIERARCHY_ENABLED && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '0.5rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '0.25rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none', color: 'var(--text-secondary)' }}>
             <input
               type="checkbox"
               checked={showFeatures}
               onChange={(e) => setShowFeatures(e.target.checked)}
-              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--color-primary)' }}
             />
             Show Features
           </label>
@@ -251,180 +195,169 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
       <div className="kanban-board">
         {COLUMNS.map((column) => {
-          const columnTasks = visibleTasks.filter((t) => t.status === column.id);
-          const colStyle = getColumnStyle(column.id);
+          const columnTasks = visibleTasks.filter(t => t.status === column.id);
+          const accent = COLUMN_ACCENT[column.id];
           const isDraggingOver = draggedOverColumn === column.id;
-          const share = visibleTasks.length > 0 ? (columnTasks.length / visibleTasks.length) * 100 : 0;
 
           return (
             <div
               key={column.id}
               className={`board-column ${isDraggingOver ? 'drag-over' : ''}`}
-              style={{
-                borderTop: `4px solid ${colStyle.topBorder}`,
-              }}
+              style={{ borderTop: `3px solid ${accent}` }}
               onDragOver={(e) => handleDragOver(e, column.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, column.id)}
             >
-              
-              {/* Sticky Headers Redesign */}
-              <div
-                className="column-header"
-                style={{
-                  borderBottom: `1px solid var(--border-color)`,
-                  color: colStyle.text,
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '0.25rem',
-                  padding: '1rem 1.25rem'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <div className="column-title" style={{ fontWeight: 800 }}>
-                    {getStatusIcon(column.id, colStyle.topBorder)}
-                    <span>{column.title}</span>
-                  </div>
-                  <div
-                    className="column-count"
-                    style={{
-                      backgroundColor: colStyle.pill,
-                      color: colStyle.text,
-                      fontSize: '0.7rem',
-                      fontWeight: 700
-                    }}
-                  >
-                    {columnTasks.length} {columnTasks.length === 1 ? 'Task' : 'Tasks'}
-                  </div>
+              {/* ── Column Header ── */}
+              <div className="column-header" style={{ padding: '0.75rem 1rem' }}>
+                <div className="column-title" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
+                  {getStatusIcon(column.id, accent)}
+                  <span style={{ color: 'var(--text-primary)' }}>{column.title}</span>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: colStyle.text, fontFamily: 'monospace', letterSpacing: '1px', userSelect: 'none', marginTop: '0.1rem' }} title={`Share: ${Math.round(share)}%`}>
-                  {getProgressBarText(share)}
+                <div
+                  className="column-count"
+                  style={{
+                    fontSize: '0.7rem', fontWeight: 700,
+                    padding: '0.1rem 0.45rem', borderRadius: '10px',
+                    backgroundColor: 'var(--bg-hover)',
+                    color: columnTasks.length > 0 ? accent : 'var(--text-muted)',
+                    border: `1px solid ${columnTasks.length > 0 ? accent + '55' : 'var(--border-color)'}`,
+                  }}
+                >
+                  {columnTasks.length}
                 </div>
               </div>
 
-              <div className="cards-container">
+              {/* ── Cards Container ── */}
+              <div className="cards-container" style={{ gap: '0.5rem', padding: '0.75rem' }}>
                 {columnTasks.length === 0 ? (
-                  /* Empty state placeholder illustration */
                   <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '2.5rem 1rem',
-                    textAlign: 'center',
-                    color: 'var(--text-muted)',
-                    border: '1.5px dashed var(--border-color)',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.01)',
-                    margin: '1rem 0'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    gap: '0.4rem', padding: '2rem 1rem', textAlign: 'center',
+                    color: 'var(--text-muted)', border: '1.5px dashed var(--border-color)',
+                    borderRadius: '10px', margin: '0.25rem 0',
                   }}>
-                    <span style={{ fontSize: '1.5rem' }}>✨</span>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>No work items here</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                      Drag work items here<br />or create a new one.
-                    </div>
+                    <span style={{ fontSize: '1.25rem', opacity: 0.5 }}>⬡</span>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>Drop items here</div>
                   </div>
                 ) : (
                   columnTasks.map((task) => {
                     const parentFeature = getParentFeature(task);
+                    const overdue = task.dueDate && isOverdue(task.dueDate) && task.status !== 'DONE';
 
                     return (
                       <div
                         key={task.id}
                         className={`task-card ${draggedTaskId === task.id ? 'dragging' : ''}`}
-                        style={{
-                          borderLeft: `4px solid ${getPriorityStripeColor(task.priority)}`
-                        }}
+                        style={{ borderLeft: `3px solid ${getPriorityStripeColor(task.priority)}` }}
                         draggable
                         onDragStart={(e) => { handleDragStart(e, task.id); setDraggedTaskId(task.id); }}
                         onDragEnd={() => setDraggedTaskId(null)}
                         onClick={() => onTaskClick(task)}
                       >
-                        {/* Header: Task ID, Priority, status badge */}
-                        <div className="card-header" style={{ marginBottom: '0.5rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{task.id}</span>
-                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                            <span
-                              className="card-priority"
-                              style={{
-                                fontSize: '0.6rem',
-                                fontWeight: 800,
-                                padding: '0.1rem 0.35rem',
-                                borderRadius: '4px',
-                                ...getPriorityBadgeStyle(task.priority)
-                              }}
-                            >
-                              {task.priority}
-                            </span>
+                        {/* Row 1: ID + priority badge */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <span style={{
+                            fontSize: '0.68rem', fontWeight: 700,
+                            color: 'var(--text-muted)', fontFamily: 'monospace', letterSpacing: '0.02em'
+                          }}>
+                            {task.id}
+                          </span>
+                          <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
                             <span style={{
-                              fontSize: '0.6rem',
-                              fontWeight: 800,
-                              padding: '0.1rem 0.35rem',
-                              borderRadius: '4px',
-                              backgroundColor: colStyle.pill,
-                              color: colStyle.text
+                              fontSize: '0.58rem', fontWeight: 800,
+                              padding: '0.08rem 0.3rem', borderRadius: '4px',
+                              letterSpacing: '0.03em', textTransform: 'uppercase',
+                              ...getPriorityBadgeStyle(task.priority)
                             }}>
-                              {task.type}
+                              {task.priority === 'CRITICAL' ? '🔴' : task.priority === 'HIGH' ? '🟠' : task.priority === 'MEDIUM' ? '🔵' : '⚪'} {task.priority}
                             </span>
                           </div>
                         </div>
 
-                        {/* Title */}
-                        <div className="card-title" style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: '1.4' }}>
+                        {/* Row 2: Title */}
+                        <div style={{
+                          fontSize: '0.82rem', fontWeight: 650, color: 'var(--text-primary)',
+                          lineHeight: '1.35', marginBottom: '0.4rem',
+                          display: '-webkit-box', WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                        }}>
                           {task.title}
                         </div>
 
-                        {/* Parent Rollup Link */}
+                        {/* Row 3: Parent feature link (if any) */}
                         {parentFeature && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.65rem', color: 'var(--type-feature-color)', marginBottom: '0.5rem', fontWeight: 600, textTransform: 'uppercase' }}>
-                            <FolderKanban size={10} />
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '0.2rem',
+                            fontSize: '0.62rem', color: 'var(--type-feature-color)',
+                            marginBottom: '0.4rem', fontWeight: 600,
+                            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
+                          }}>
+                            <FolderKanban size={9} style={{ flexShrink: 0 }} />
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {parentFeature.title}
                             </span>
                           </div>
                         )}
 
-                        {/* Footer: Module, Due Date, Assignee Initials */}
-                        <div className="card-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                            {task.dueDate && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600 }}>
-                                <Calendar size={10} />
-                                <span>
-                                  {new Date(task.dueDate).toLocaleDateString(undefined, {
-                                    month: 'short',
-                                    day: 'numeric',
-                                  })}
-                                </span>
+                        {/* Row 4: Footer — type chip, module, due date, avatar */}
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          paddingTop: '0.4rem', borderTop: '1px solid var(--border-color)',
+                          gap: '0.35rem'
+                        }}>
+                          {/* Left: type + module + due */}
+                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                            {/* Type chip */}
+                            <span style={{
+                              fontSize: '0.58rem', fontWeight: 700, padding: '0.08rem 0.3rem',
+                              borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.03em',
+                              backgroundColor: 'var(--bg-hover)', color: 'var(--text-muted)',
+                              border: '1px solid var(--border-color)', flexShrink: 0
+                            }}>
+                              {task.type === 'FEATURE' ? '⬡' : task.type === 'BUG' ? '🐛' : task.type === 'IMPROVEMENT' ? '↑' : '◻'} {task.type}
+                            </span>
+
+                            {/* Module */}
+                            {task.module && (
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: '2px',
+                                color: 'var(--text-muted)', fontSize: '0.6rem', fontWeight: 600,
+                                background: 'var(--bg-hover)', padding: '0.08rem 0.3rem',
+                                borderRadius: '4px', border: '1px solid var(--border-color)',
+                                maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                              }}>
+                                <Tag size={7} style={{ flexShrink: 0 }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.module}</span>
                               </div>
                             )}
-                            {task.module && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '0.1rem 0.3rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.65rem', fontWeight: 600 }}>
-                                <Tag size={8} />
-                                <span>{task.module}</span>
+
+                            {/* Due date */}
+                            {task.dueDate && (
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: '0.15rem',
+                                fontSize: '0.6rem', fontWeight: 600, flexShrink: 0,
+                                color: overdue ? '#ef4444' : 'var(--text-muted)',
+                              }}>
+                                <Calendar size={9} style={{ flexShrink: 0 }} />
+                                <span>{formatDue(task.dueDate)}</span>
                               </div>
                             )}
                           </div>
 
-                          {/* Assignee Avatar */}
+                          {/* Right: Assignee avatar */}
                           {task.assignee && (
-                            <div style={{ display: 'flex', alignItems: 'center' }} title={`Assignee: ${task.assignee}`}>
-                              <div style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
+                            <div
+                              title={`Assignee: ${task.assignee}`}
+                              style={{
+                                width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
                                 backgroundColor: getAvatarColor(task.assignee),
-                                color: '#fff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.65rem',
-                                fontWeight: 800,
-                                border: '1px solid var(--bg-card)'
-                              }}>
-                                {getInitials(task.assignee)}
-                              </div>
+                                color: '#fff', display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', fontSize: '0.6rem', fontWeight: 800,
+                                border: '1.5px solid var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                              }}
+                            >
+                              {getInitials(task.assignee)}
                             </div>
                           )}
                         </div>
