@@ -22,6 +22,14 @@ import type { ThreadedComment } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 
+const STATUS_CONFIG: Record<string, { label: string; pill: string; text: string; border: string; icon: string }> = {
+  BACKLOG:     { label: 'Backlog',     pill: 'var(--status-backlog-pill)',   text: 'var(--status-backlog-text)',   border: 'var(--status-backlog-border)',   icon: '○' },
+  TODO:        { label: 'To Do',       pill: 'var(--status-todo-pill)',      text: 'var(--status-todo-text)',      border: 'var(--status-todo-border)',      icon: '◎' },
+  IN_PROGRESS: { label: 'In Progress', pill: 'var(--status-progress-pill)',  text: 'var(--status-progress-text)',  border: 'var(--status-progress-border)',  icon: '◑' },
+  IN_REVIEW:   { label: 'In Review',   pill: 'var(--status-review-pill)',    text: 'var(--status-review-text)',    border: 'var(--status-review-border)',    icon: '◕' },
+  DONE:        { label: 'Done',        pill: 'var(--status-done-pill)',      text: 'var(--status-done-text)',      border: 'var(--status-done-border)',      icon: '●' },
+};
+
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -602,14 +610,54 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       <div className="modal-content" style={{ maxWidth: '950px', width: '90%', display: 'flex', flexDirection: 'column', height: '85vh', overflow: 'hidden' }}>
         
         {/* Sticky Header */}
-        <div className="modal-header" style={{ flexShrink: 0, borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-            <FolderKanban size={20} className="logo-icon" />
-            <span>{task ? `${task.id}: ${task.title}` : 'Create New Work Item'}</span>
-          </h2>
-          <button type="button" className="close-btn" onClick={onClose} aria-label="Close modal" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-            <X size={18} />
-          </button>
+        <div className="modal-header" style={{ flexShrink: 0, borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem 0 1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <FolderKanban size={20} className="logo-icon" />
+              <span>{task ? `${task.id}: ${task.title}` : 'Create New Work Item'}</span>
+            </h2>
+            <button type="button" className="close-btn" onClick={onClose} aria-label="Close modal" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* ── Visual Status Selector ── */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingBottom: '0.85rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>Status</span>
+            {(Object.entries(STATUS_CONFIG) as [TaskStatus, typeof STATUS_CONFIG[string]][]).map(([key, cfg]) => {
+              const isActive = status === key;
+              const canChangeStatus = !task || checkPermission(userRole, 'STATUS', task, currentUserName).allowed;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  title={!canChangeStatus ? "You don't have permission to change status." : `Set status to ${cfg.label}`}
+                  disabled={!canChangeStatus}
+                  onClick={() => canChangeStatus && setStatus(key)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: canChangeStatus ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.18s ease',
+                    border: `2px solid ${cfg.border}`,
+                    backgroundColor: isActive ? cfg.pill : 'transparent',
+                    color: isActive ? cfg.text : 'var(--text-muted)',
+                    opacity: !canChangeStatus ? 0.5 : 1,
+                    boxShadow: isActive ? `0 0 0 3px ${cfg.border}44` : 'none',
+                    transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                  }}
+                >
+                  <span style={{ fontSize: '0.8rem' }}>{cfg.icon}</span>
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -832,22 +880,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label>Workflow Status <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                      <select
-                        className="form-select"
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                        disabled={task ? !checkPermission(userRole, 'STATUS', task, currentUserName).allowed : false}
-                        title={task && !checkPermission(userRole, 'STATUS', task, currentUserName).allowed ? "You don't have permission to change status." : undefined}
-                      >
-                        <option value="BACKLOG">Backlog</option>
-                        <option value="TODO">To Do</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="IN_REVIEW">In Review</option>
-                        <option value="DONE">Done</option>
-                      </select>
-                    </div>
+                    {/* Status is now set via the header pills — hidden input keeps form value in sync */}
+                    <input type="hidden" name="status" value={status} />
 
                     <div className="form-group">
                       <label>Priority Level <span style={{ color: 'var(--color-danger)' }}>*</span></label>
