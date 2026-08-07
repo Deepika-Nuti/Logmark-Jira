@@ -1176,12 +1176,27 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
-    // Verify the intern owns this task
+    // Verify the intern owns this task — match by name, email, or userId
+    const userNameLower = currentUserName.toLowerCase();
+    const userEmailLower = (currentUser || '').toLowerCase();
+    const userIdLower = (currentUserId || '').toLowerCase();
     const isOwn = (
-      (task.assignee && task.assignee.toLowerCase() === currentUserName.toLowerCase()) ||
-      (task.reporter && task.reporter.toLowerCase() === currentUserName.toLowerCase()) ||
-      (task.owner && task.owner.toLowerCase().includes(currentUserName.toLowerCase())) ||
-      (task.createdBy && task.createdBy.toLowerCase() === currentUserName.toLowerCase())
+      (task.assignee && (
+        task.assignee.toLowerCase() === userNameLower ||
+        (userEmailLower && task.assignee.toLowerCase() === userEmailLower)
+      )) ||
+      (task.reporter && (
+        task.reporter.toLowerCase() === userNameLower ||
+        (userEmailLower && task.reporter.toLowerCase() === userEmailLower)
+      )) ||
+      (task.owner && task.owner.split(/[,/]+/).map(o => o.trim().toLowerCase()).some(o =>
+        o === userNameLower || (userEmailLower && o === userEmailLower)
+      )) ||
+      (task.createdBy && (
+        task.createdBy.toLowerCase() === userNameLower ||
+        (userIdLower && task.createdBy.toLowerCase() === userIdLower) ||
+        (userEmailLower && task.createdBy.toLowerCase() === userEmailLower)
+      ))
     );
     if (!isOwn && effectiveRole !== 'ADMIN' && effectiveRole !== 'PRODUCT_MANAGER') {
       addToast('You can only request deletion of your own tasks.', 'error');

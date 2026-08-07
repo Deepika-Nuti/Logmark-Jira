@@ -304,11 +304,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const canCreate = !task && checkPermission(userRole, 'CREATE', { type }, currentUserName).allowed;
 
   // Intern: can request deletion of own tasks
+  // isOwnTask uses all identity signals: display name, email, and userId
+  const currentUserEmail = currentUser?.toLowerCase() || '';
+  const currentUserIdLower = currentUserId?.toLowerCase() || '';
   const isOwnTask = task && (
-    (task.assignee && task.assignee.toLowerCase() === currentUserName.toLowerCase()) ||
-    (task.reporter && task.reporter.toLowerCase() === currentUserName.toLowerCase()) ||
-    (task.owner && task.owner.toLowerCase().includes(currentUserName.toLowerCase())) ||
-    (task.createdBy && task.createdBy.toLowerCase() === currentUserName.toLowerCase())
+    // Assignee match (name or email)
+    (task.assignee && (
+      task.assignee.toLowerCase() === currentUserName.toLowerCase() ||
+      (currentUserEmail && task.assignee.toLowerCase() === currentUserEmail)
+    )) ||
+    // Reporter match (name or email)
+    (task.reporter && (
+      task.reporter.toLowerCase() === currentUserName.toLowerCase() ||
+      (currentUserEmail && task.reporter.toLowerCase() === currentUserEmail)
+    )) ||
+    // Owner match (name or email, comma/slash split)
+    (task.owner && task.owner.split(/[,/]+/).map(o => o.trim().toLowerCase()).some(o =>
+      o === currentUserName.toLowerCase() || (currentUserEmail && o === currentUserEmail)
+    )) ||
+    // createdBy: could be UUID, email, or display name
+    (task.createdBy && (
+      task.createdBy.toLowerCase() === currentUserName.toLowerCase() ||
+      (currentUserIdLower && task.createdBy.toLowerCase() === currentUserIdLower) ||
+      (currentUserEmail && task.createdBy.toLowerCase() === currentUserEmail)
+    ))
   );
   const canRequestDelete = task && isIntern && isOwnTask && !task.deletionRequested;
   const isDeveloper = userRole === 'DEVELOPER';
