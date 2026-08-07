@@ -54,7 +54,12 @@ export interface Task {
   comments: string;
   createdBy: string;
   attachments: Attachment[]; // Stored in comments JSON — not a separate DB column
+  // Soft-delete / deletion bin fields
+  deletionRequested?: boolean;
+  deletionRequestedBy?: string; // display name of requester
+  deletionRequestedAt?: string; // ISO timestamp
 }
+
 
 export interface BoardColumn {
   id: TaskStatus;

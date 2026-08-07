@@ -13,7 +13,9 @@ import {
   Sparkles,
   Activity,
   Wifi,
-  WifiOff
+  WifiOff,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import type { Task, Member, ProjectStats } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +28,8 @@ interface DashboardViewProps {
   onCreateWorkItem: () => void;
   onImportSpreadsheet: () => void;
   onNavigate: (view: any) => void;
+  onDeleteTask?: (id: string) => void;
+  onRestoreTask?: (id: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -35,6 +39,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onCreateWorkItem,
   onImportSpreadsheet,
   onNavigate,
+  onDeleteTask,
+  onRestoreTask,
 }) => {
   const { currentUserId, currentUser } = useAuth();
   const { userRole: effectiveRole } = useWorkspace();
@@ -646,6 +652,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ── Pending Deletions Panel (Admin/PM only) ── */}
+      {(effectiveRole === 'ADMIN' || effectiveRole === 'PRODUCT_MANAGER') && (() => {
+        const pendingTasks = tasks.filter(t => t.deletionRequested);
+        if (pendingTasks.length === 0) return null;
+        return (
+          <div style={{ marginTop: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <Trash2 size={16} style={{ color: '#ef4444' }} />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Pending Deletions</h3>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '10px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}>
+                {pendingTasks.length}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {pendingTasks.map(task => (
+                <div key={task.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0.75rem 1rem', borderRadius: '10px', gap: '1rem',
+                  backgroundColor: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.2)',
+                  boxShadow: '0 1px 4px rgba(239,68,68,0.06)'
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{task.id}</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.06rem 0.3rem', borderRadius: '4px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>⏳ PENDING DELETE</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      Requested by <strong>{task.deletionRequestedBy}</strong>
+                      {task.deletionRequestedAt && ` — ${getRelativeTime(task.deletionRequestedAt)}`}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    {onRestoreTask && (
+                      <button
+                        onClick={() => onRestoreTask(task.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)', cursor: 'pointer' }}
+                      >
+                        <RotateCcw size={12} /> Restore
+                      </button>
+                    )}
+                    {onDeleteTask && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Permanently delete "${task.title}"? This cannot be undone.`)) {
+                            onDeleteTask(task.id);
+                          }
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={12} /> Delete Forever
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

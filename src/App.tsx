@@ -69,6 +69,8 @@ function MainAppContent() {
     handleSaveTask,
     handleStatusChange,
     handleDeleteTask,
+    handleRequestDeleteTask,
+    handleRestoreTask,
     handleAddMember,
     handleRemoveMember,
     importWorkspaceData,
@@ -1117,6 +1119,8 @@ function MainAppContent() {
               fileInputRef.current?.click();
             }}
             onNavigate={(view) => setActiveView(view)}
+            onDeleteTask={handleDeleteTask}
+            onRestoreTask={handleRestoreTask}
           />
         ) : activeView === 'MEMBERS' ? (
           <MembersDirectory 
@@ -1225,6 +1229,14 @@ function MainAppContent() {
           handleDeleteTask(id);
           setIsModalOpen(false);
           setSelectedTaskId(null);
+        }}
+        onRequestDelete={(id) => {
+          handleRequestDeleteTask(id);
+          setIsModalOpen(false);
+          setSelectedTaskId(null);
+        }}
+        onRestoreTask={(id) => {
+          handleRestoreTask(id);
         }}
       />
     </div>

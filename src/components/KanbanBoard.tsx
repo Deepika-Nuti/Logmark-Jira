@@ -264,6 +264,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             {task.id}
                           </span>
                           <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                            {task.deletionRequested && (
+                              <span title={`Deletion requested by ${task.deletionRequestedBy}`} style={{
+                                fontSize: '0.58rem', fontWeight: 800, padding: '0.08rem 0.3rem',
+                                borderRadius: '4px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                                border: '1px solid rgba(239,68,68,0.25)'
+                              }}>⏳ DEL</span>
+                            )}
                             <span style={{
                               fontSize: '0.58rem', fontWeight: 800,
                               padding: '0.08rem 0.3rem', borderRadius: '4px',

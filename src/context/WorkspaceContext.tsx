@@ -158,6 +158,8 @@ interface WorkspaceContextType {
   handleSaveTask: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'activities'> & { id?: string; activities?: ActivityLog[] }) => void;
   handleStatusChange: (taskId: string, newStatus: TaskStatus) => void;
   handleDeleteTask: (id: string) => void;
+  handleRequestDeleteTask: (id: string) => void;
+  handleRestoreTask: (id: string) => void;
   handleAddMember: (name: string, role: MemberRole, email?: string) => void;
   handleRemoveMember: (id: string) => void;
   importWorkspaceData: (importedTasks: Task[], importedMembers: Member[], shouldMerge: boolean) => void;
@@ -1170,6 +1172,94 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const handleRequestDeleteTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    // Verify the intern owns this task
+    const isOwn = (
+      (task.assignee && task.assignee.toLowerCase() === currentUserName.toLowerCase()) ||
+      (task.reporter && task.reporter.toLowerCase() === currentUserName.toLowerCase()) ||
+      (task.owner && task.owner.toLowerCase().includes(currentUserName.toLowerCase())) ||
+      (task.createdBy && task.createdBy.toLowerCase() === currentUserName.toLowerCase())
+    );
+    if (!isOwn && effectiveRole !== 'ADMIN' && effectiveRole !== 'PRODUCT_MANAGER') {
+      addToast('You can only request deletion of your own tasks.', 'error');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const actLog: ActivityLog = {
+      id: 'DEL-REQ-' + Math.random(),
+      user: userDisplayName,
+      action: `Requested deletion of this task`,
+      timestamp: now,
+    };
+
+    const updated = tasks.map(t =>
+      t.id === id
+        ? { ...t, deletionRequested: true, deletionRequestedBy: userDisplayName, deletionRequestedAt: now, updatedAt: now, activities: [actLog, ...(t.activities || [])] }
+        : t
+    );
+    setTasksState(updated);
+    addToast('Deletion requested — awaiting admin approval.', 'info');
+
+    const client = supabase;
+    if (isSupabaseConfigured && client) {
+      (async () => {
+        try {
+          await client.from('tasks').update({
+            deletion_requested: true,
+            deletion_requested_by: userDisplayName,
+            deletion_requested_at: now,
+            updated_at: now,
+          }).eq('id', id);
+          await client.from('activity_logs').insert({ task_id: id, user: actLog.user, action: actLog.action, timestamp: actLog.timestamp });
+        } catch (err) {
+          console.error('Failed to sync deletion request:', err);
+        }
+      })();
+    }
+  };
+
+  const handleRestoreTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const now = new Date().toISOString();
+    const actLog: ActivityLog = {
+      id: 'RESTORE-' + Math.random(),
+      user: userDisplayName,
+      action: `Restored task — deletion request cancelled`,
+      timestamp: now,
+    };
+
+    const updated = tasks.map(t =>
+      t.id === id
+        ? { ...t, deletionRequested: false, deletionRequestedBy: undefined, deletionRequestedAt: undefined, updatedAt: now, activities: [actLog, ...(t.activities || [])] }
+        : t
+    );
+    setTasksState(updated);
+    addToast('Task restored successfully.', 'success');
+
+    const client = supabase;
+    if (isSupabaseConfigured && client) {
+      (async () => {
+        try {
+          await client.from('tasks').update({
+            deletion_requested: false,
+            deletion_requested_by: null,
+            deletion_requested_at: null,
+            updated_at: now,
+          }).eq('id', id);
+          await client.from('activity_logs').insert({ task_id: id, user: actLog.user, action: actLog.action, timestamp: actLog.timestamp });
+        } catch (err) {
+          console.error('Failed to sync restore:', err);
+        }
+      })();
+    }
+  };
+
   const handleDeleteTask = async (id: string) => {
     const taskToDelete = tasks.find(t => t.id === id);
     if (!taskToDelete) return;
@@ -1510,6 +1600,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         handleSaveTask,
         handleStatusChange,
         handleDeleteTask,
+        handleRequestDeleteTask,
+        handleRestoreTask,
         handleAddMember,
         handleRemoveMember,
         importWorkspaceData,

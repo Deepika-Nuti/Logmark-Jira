@@ -38,6 +38,8 @@ interface TaskModalProps {
   allTasks: Task[];
   onSave: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'activities'> & { id?: string; activities?: ActivityLog[] }) => void;
   onDelete?: (id: string) => void;
+  onRequestDelete?: (id: string) => void;
+  onRestoreTask?: (id: string) => void;
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({
@@ -48,6 +50,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   allTasks,
   onSave,
   onDelete,
+  onRequestDelete,
+  onRestoreTask,
 }) => {
   const { userRole, userDisplayName } = useWorkspace();
   const { currentUser, currentUserId } = useAuth();
@@ -290,19 +294,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   const currentUserName = userDisplayName;
 
+  const isIntern = userRole === 'INTERN';
+  const isEmployee = userRole === 'EMPLOYEE';
+  const isLimitedRole = isIntern || isEmployee;
+
   const canEdit = !task || checkPermission(userRole, 'EDIT', task, currentUserName).allowed;
   const canAssign = !task || checkPermission(userRole, 'ASSIGN', task, currentUserName).allowed;
   const canDelete = task && checkPermission(userRole, 'DELETE', task, currentUserName).allowed;
   const canCreate = !task && checkPermission(userRole, 'CREATE', { type }, currentUserName).allowed;
 
+  // Intern: can request deletion of own tasks
+  const isOwnTask = task && (
+    (task.assignee && task.assignee.toLowerCase() === currentUserName.toLowerCase()) ||
+    (task.reporter && task.reporter.toLowerCase() === currentUserName.toLowerCase()) ||
+    (task.owner && task.owner.toLowerCase().includes(currentUserName.toLowerCase())) ||
+    (task.createdBy && task.createdBy.toLowerCase() === currentUserName.toLowerCase())
+  );
+  const canRequestDelete = task && isIntern && isOwnTask && !task.deletionRequested;
   const isDeveloper = userRole === 'DEVELOPER';
   const isQA = userRole === 'QA';
-  const isEmployee = userRole === 'EMPLOYEE';
 
   const typeTooltip = "You don't have permission to create this work item type.";
   const editTooltip = "You don't have permission to edit this work item.";
   const assignTooltip = "Only Product Managers and Admins can assign work items.";
-  const deleteTooltip = "You don't have permission to delete this work item.";
+
   const ownerTooltip = "Only Product Managers and Admins can manage owners/reporters.";
   const employeeTooltip = "Employees cannot edit features or estimate hours.";
 
@@ -742,6 +757,36 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           {/* Sticky Tab Body (only this scrolls) */}
           <div className="modal-body-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
             
+            {/* Pending Deletion Warning Banner */}
+            {task?.deletionRequested && (
+              <div style={{
+                backgroundColor: 'var(--status-progress-pill)',
+                border: '1px solid var(--status-progress-border)',
+                color: 'var(--status-progress-text)',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.5rem',
+                marginBottom: '1rem',
+                flexShrink: 0
+              }}>
+                <span>⏳ Deletion requested by <strong>{task.deletionRequestedBy}</strong> — awaiting admin approval.</span>
+                {onRestoreTask && (userRole === 'ADMIN' || userRole === 'PRODUCT_MANAGER') && (
+                  <button
+                    type="button"
+                    onClick={() => onRestoreTask(task.id)}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid var(--status-progress-border)', background: 'var(--bg-card)', cursor: 'pointer', fontWeight: 700, color: 'var(--status-progress-text)' }}
+                  >
+                    ↩ Restore
+                  </button>
+                )}
+              </div>
+            )}
+
             {validationError && (
               <div className="validation-error-alert" style={{
                 backgroundColor: 'var(--priority-critical-bg)',
@@ -1087,21 +1132,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </span>
                   
                   <div className="form-grid-2">
-                    <div className="form-group">
-                      <label>Owner / Manager</label>
-                      <select
-                        className="form-select"
-                        value={owner}
-                        onChange={(e) => setOwner(e.target.value)}
-                        disabled={isDeveloper || isQA || isEmployee}
-                        title={(isDeveloper || isQA || isEmployee) ? ownerTooltip : undefined}
-                      >
-                        <option value="">No Owner assigned...</option>
-                        {members.map(m => (
-                          <option key={m.id} value={m.name}>{m.name} ({m.role.replace('_', ' ')})</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* Owner — hidden for intern/employee */}
+                    {!isLimitedRole && (
+                      <div className="form-group">
+                        <label>Owner / Manager</label>
+                        <select
+                          className="form-select"
+                          value={owner}
+                          onChange={(e) => setOwner(e.target.value)}
+                          disabled={isDeveloper || isQA || isEmployee}
+                          title={(isDeveloper || isQA || isEmployee) ? ownerTooltip : undefined}
+                        >
+                          <option value="">No Owner assigned...</option>
+                          {members.map(m => (
+                            <option key={m.id} value={m.name}>{m.name} ({m.role.replace('_', ' ')})</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     <div className="form-group">
                       <label>Assignee</label>
@@ -1119,21 +1167,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label>Reporter</label>
-                      <select
-                        className="form-select"
-                        value={reporter}
-                        onChange={(e) => setReporter(e.target.value)}
-                        disabled={isDeveloper || isQA || isEmployee}
-                        title={(isDeveloper || isQA || isEmployee) ? ownerTooltip : undefined}
-                      >
-                        <option value="">No Reporter assigned...</option>
-                        {members.map(m => (
-                          <option key={m.id} value={m.name}>{m.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* Reporter — hidden for intern/employee */}
+                    {!isLimitedRole && (
+                      <div className="form-group">
+                        <label>Reporter</label>
+                        <select
+                          className="form-select"
+                          value={reporter}
+                          onChange={(e) => setReporter(e.target.value)}
+                          disabled={isDeveloper || isQA || isEmployee}
+                          title={(isDeveloper || isQA || isEmployee) ? ownerTooltip : undefined}
+                        >
+                          <option value="">No Reporter assigned...</option>
+                          {members.map(m => (
+                            <option key={m.id} value={m.name}>{m.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     <div className="form-group">
                       <label htmlFor="modal-task-due">Due Date</label>
@@ -1150,6 +1201,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </div>
                 </div>
 
+                {/* Time Tracking — hidden for interns */}
+                {!isIntern && (
                 <div className="form-section-card">
                   <span className="form-section-title">
                     <Clock size={14} /> Time Tracker & Estimates
@@ -1202,6 +1255,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Time tracking widgets inside Assignment tab */}
                 {task && (
@@ -1394,7 +1448,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {/* Sticky Footer */}
           <div className="modal-footer" style={{ flexShrink: 0, borderTop: '1px solid var(--border-color)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            {task && onDelete && (
+            {/* Admin permanent delete */}
+            {task && onDelete && canDelete && (
               <button
                 type="button"
                 className="btn btn-danger"
@@ -1405,10 +1460,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     onClose();
                   }
                 }}
-                disabled={!canDelete}
-                title={!canDelete ? deleteTooltip : undefined}
               >
                 <Trash2 size={16} /> Delete
+              </button>
+            )}
+            {/* Intern: request deletion */}
+            {task && canRequestDelete && onRequestDelete && (
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ marginRight: 'auto' }}
+                onClick={() => {
+                  if (confirm("Request deletion of this task? An admin will need to approve before it\'s removed.")) {
+                    onRequestDelete(task.id);
+                    onClose();
+                  }
+                }}
+              >
+                <Trash2 size={16} /> Request Deletion
               </button>
             )}
             <button type="button" className="btn btn-secondary" onClick={onClose}>
