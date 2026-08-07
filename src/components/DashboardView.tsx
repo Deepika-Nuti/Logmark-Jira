@@ -118,10 +118,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   ];
 
   // My Workspace Calculations
+  // Use the same comprehensive matching as Team Allocation:
+  // Match by resolved member name, email, assignee, owner (comma/slash split), reporter, createdBy
   const myTasks = tasks.filter(t => {
-    const assigneeMatch = t.assignee && (t.assignee.toLowerCase() === currentUserName.toLowerCase() || (currentUser && t.assignee.toLowerCase() === currentUser.toLowerCase()));
-    const ownerMatch = t.owner && (t.owner.toLowerCase().includes(currentUserName.toLowerCase()) || (currentUser && t.owner.toLowerCase().includes(currentUser.toLowerCase())));
-    return assigneeMatch || ownerMatch;
+    const userName = (member?.name || currentUserName).toLowerCase();
+    const userEmail = (member?.email || currentUser || '').toLowerCase();
+
+    // assignee field: could hold name or email
+    const assigneeMatch = t.assignee && (
+      t.assignee.toLowerCase() === userName ||
+      (userEmail && t.assignee.toLowerCase() === userEmail)
+    );
+
+    // owner field: may be comma/slash separated list of names
+    const ownerMatch = t.owner && t.owner
+      .split(/[,/]+/)
+      .map(o => o.trim().toLowerCase())
+      .some(o => o === userName || (userEmail && o === userEmail));
+
+    // reporter field
+    const reporterMatch = t.reporter && (
+      t.reporter.toLowerCase() === userName ||
+      (userEmail && t.reporter.toLowerCase() === userEmail)
+    );
+
+    // createdBy field (may be userId or email)
+    const createdByMatch = t.createdBy && (
+      t.createdBy.toLowerCase() === userName ||
+      (currentUserId && t.createdBy === currentUserId) ||
+      (userEmail && t.createdBy.toLowerCase() === userEmail)
+    );
+
+    return assigneeMatch || ownerMatch || reporterMatch || createdByMatch;
   });
 
   const myOpenTasks = myTasks.filter(t => t.status !== 'DONE');
@@ -140,6 +168,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const myRecentlyAssigned = myTasks.filter(t => {
     return new Date(t.createdAt) >= threeDaysAgo;
   }).length;
+
 
   const isOnline = navigator.onLine;
 
@@ -404,33 +433,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>Assigned To Me</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>My Work Items</span>
               {myTasks.length === 0 ? (
                 <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-                  No work items assigned. Your queue is clean!
+                  No work items assigned, reported, or created by you.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
-                  {myTasks.map(t => (
-                    <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-app)', fontSize: '0.8rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.75rem' }}>{t.id}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>
+                  {myTasks.map(t => {
+                    const userName = (member?.name || currentUserName).toLowerCase();
+                    const userEmail = (member?.email || currentUser || '').toLowerCase();
+                    const isAssignee = t.assignee && (t.assignee.toLowerCase() === userName || (userEmail && t.assignee.toLowerCase() === userEmail));
+                    const isReporter = !isAssignee && t.reporter && (t.reporter.toLowerCase() === userName || (userEmail && t.reporter.toLowerCase() === userEmail));
+                    const isCreator = !isAssignee && !isReporter;
+                    return (
+                    <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-app)', fontSize: '0.8rem', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.7rem', flexShrink: 0 }}>{t.id}</span>
                         <span style={{ fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                        {isReporter && <span style={{ fontSize: '0.58rem', fontWeight: 700, padding: '0.06rem 0.3rem', borderRadius: '4px', backgroundColor: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.2)', flexShrink: 0 }}>reporter</span>}
+                        {isCreator && <span style={{ fontSize: '0.58rem', fontWeight: 700, padding: '0.06rem 0.3rem', borderRadius: '4px', backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>created</span>}
                       </div>
                       <span style={{
                         fontSize: '0.65rem',
                         fontWeight: 700,
                         padding: '0.1rem 0.35rem',
                         borderRadius: '4px',
-                        backgroundColor: t.status === 'DONE' ? 'var(--status-done-pill)' : 'var(--status-progress-pill)',
-                        color: t.status === 'DONE' ? 'var(--status-done-text)' : 'var(--status-progress-text)',
+                        backgroundColor: t.status === 'DONE' ? 'var(--status-done-pill)' : t.status === 'IN_PROGRESS' ? 'var(--status-progress-pill)' : 'var(--status-todo-pill)',
+                        color: t.status === 'DONE' ? 'var(--status-done-text)' : t.status === 'IN_PROGRESS' ? 'var(--status-progress-text)' : 'var(--status-todo-text)',
                         flexShrink: 0
                       }}>{t.status.replace('_', ' ')}</span>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
+
           </div>
 
           {/* Team Workload & Allocation — VISIBLE TO ALL ROLES */}
