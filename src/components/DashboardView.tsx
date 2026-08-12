@@ -154,39 +154,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-      {/* ── 1. Welcome Bar ── */}
+      {/* ── 1. Welcome Card — glass premium ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: '0.75rem',
-        padding: '0.875rem 1.25rem',
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
+        padding: '1rem 1.4rem',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.82) 0%, rgba(239,246,255,0.75) 100%)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.75)',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-xs)',
+        boxShadow: '0 4px 20px rgba(37,99,235,0.06), 0 1px 4px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,0.7)',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <div>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            Welcome back, {member ? member.name : currentUserName}
+        <div style={{
+          position: 'absolute', top: '-30px', right: '-30px',
+          width: '120px', height: '120px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
+            Welcome back, {member ? member.name : currentUserName} 👋
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
               {userRoleDisplay} · Logmark AI Workspace
             </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>·</span>
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
-              fontSize: '0.7rem', fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
+              fontSize: '0.68rem', fontWeight: 700,
               color: isOnline ? 'var(--status-done-text)' : 'var(--priority-critical-text)',
+              padding: '0.1rem 0.35rem',
+              background: isOnline ? 'var(--status-done-pill)' : 'var(--priority-critical-bg)',
+              borderRadius: '99px',
             }}>
-              {isOnline ? <Wifi size={11} /> : <WifiOff size={11} />}
+              {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
               {isOnline ? 'Connected' : 'Offline'}
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          <Calendar size={13} />
-          <span>{currentDate}</span>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.35rem',
+          fontSize: '0.72rem', color: 'var(--text-muted)',
+          position: 'relative', zIndex: 1,
+          padding: '0.3rem 0.65rem',
+          background: 'rgba(255,255,255,0.5)',
+          border: '1px solid rgba(203,213,225,0.5)',
+          borderRadius: '99px',
+        }}>
+          <Calendar size={12} style={{ color: 'var(--color-primary)', opacity: 0.7 }} />
+          <span style={{ fontWeight: 500 }}>{currentDate}</span>
         </div>
       </div>
+
 
       {/* ── 2. Quick Actions ── */}
       <div className="quick-actions-row">
