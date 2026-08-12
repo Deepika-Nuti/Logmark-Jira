@@ -3,9 +3,7 @@ import {
   Users,
   Plus,
   Upload,
-  Kanban,
   User,
-  ListTodo,
   Calendar,
   Activity,
   Wifi,
@@ -32,7 +30,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   stats: _stats,
   onCreateWorkItem,
   onImportSpreadsheet,
-  onNavigate,
+  onNavigate: _onNavigate,
 }) => {
   const { currentUserId, currentUser } = useAuth();
   const { userRole: effectiveRole } = useWorkspace();
@@ -203,18 +201,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="quick-actions-row">
         <button className="quick-action-btn primary" onClick={onCreateWorkItem} id="dashboard-create-btn">
           <Plus size={14} /> Create Work Item
-        </button>
-        <button className="quick-action-btn" onClick={() => onNavigate('BOARD')} id="dashboard-kanban-btn">
-          <Kanban size={14} /> Kanban Board
-        </button>
-        <button className="quick-action-btn" onClick={() => onNavigate('BACKLOG')} id="dashboard-backlog-btn">
-          <ListTodo size={14} /> Backlog
-        </button>
-        <button className="quick-action-btn" onClick={() => onNavigate('MEMBERS')} id="dashboard-team-btn">
-          <Users size={14} /> Team Registry
-        </button>
-        <button className="quick-action-btn" onClick={() => onNavigate('PROFILE')} id="dashboard-profile-btn">
-          <User size={14} /> My Profile
         </button>
         <button className="quick-action-btn" onClick={onImportSpreadsheet} id="dashboard-import-btn">
           <Upload size={14} /> Import Sheet
