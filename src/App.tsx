@@ -632,12 +632,35 @@ function MainAppContent() {
   // Apply filters and sorting (Phase 7 & 8)
   const filteredTasks = tasks.filter((task) => {
     if (myWorkItemsOnly) {
-      const assigneeMatch = task.assignee && task.assignee.toLowerCase() === currentUserName.toLowerCase();
-      const ownerMatch = task.owner && task.owner.toLowerCase().includes(currentUserName.toLowerCase());
-      const reporterMatch = task.reporter && task.reporter.toLowerCase() === currentUserName.toLowerCase();
-      if (!assigneeMatch && !ownerMatch && !reporterMatch) {
-        return false;
-      }
+      const norm = (v: string | null | undefined) => (v || '').trim().toLowerCase();
+      const memberName = norm(currentUserMember?.name || currentUserName);
+      const memberEmail = norm(currentUserMember?.email || currentUser);
+      const userId = currentUserId || '';
+      // Also get first name only for partial match
+      const firstName = memberName.split(' ')[0];
+
+      const taskAssignee = norm(task.assignee);
+      const taskOwner = norm(task.owner);
+      const taskReporter = norm(task.reporter);
+      const taskCreatedBy = norm(task.createdBy);
+
+      const matches =
+        // Match by full name
+        (taskAssignee && taskAssignee === memberName) ||
+        // Match by first name alone
+        (taskAssignee && taskAssignee === firstName) ||
+        // Match by email
+        (taskAssignee && memberEmail && taskAssignee === memberEmail) ||
+        // Match by user ID
+        (taskAssignee && userId && taskAssignee === userId) ||
+        // Legacy owner field
+        (taskOwner && (taskOwner === memberName || taskOwner === firstName || (memberEmail && taskOwner === memberEmail) || taskOwner.split(/[,/]+/).map(o => o.trim().toLowerCase()).some(o => o === memberName || o === firstName || (memberEmail && o === memberEmail)))) ||
+        // Reporter match
+        (taskReporter && (taskReporter === memberName || taskReporter === firstName || (memberEmail && taskReporter === memberEmail) || (userId && taskReporter === userId))) ||
+        // Created by match
+        (taskCreatedBy && (taskCreatedBy === memberName || taskCreatedBy === firstName || (memberEmail && taskCreatedBy === memberEmail) || (userId && taskCreatedBy === userId)));
+
+      if (!matches) return false;
     }
 
     const matchesSearch = 
