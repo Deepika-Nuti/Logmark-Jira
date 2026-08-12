@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Users, Plus, Trash2, UserPlus, Search } from 'lucide-react';
 import type { Member, MemberRole, Task } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { useWorkspace } from '../context/WorkspaceContext';
 
 interface MembersDirectoryProps {
   members: Member[];
@@ -18,11 +17,9 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
   onRemoveMember,
 }) => {
   useAuth();
-  const { userRole } = useWorkspace();
-  const isEmployee = userRole === 'EMPLOYEE' || userRole === 'INTERN';
   const [name, setName] = useState('');
   const [emailInput, setEmailInput] = useState('');
-  const [role, setRole] = useState<MemberRole>('DEVELOPER');
+  const [role, setRole] = useState<MemberRole>('PRODUCT_MANAGER');
   
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,24 +50,17 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
     switch (r) {
       case 'PRODUCT_MANAGER':
         return { backgroundColor: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6', border: '1px solid rgba(139, 92, 246, 0.25)' };
-      case 'DEVELOPER':
-        return { backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.25)' };
-      case 'QA':
-        return { backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)' };
       case 'INTERN':
         return { backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.25)' };
-      case 'EMPLOYEE':
+      default:
         return { backgroundColor: 'rgba(100, 116, 139, 0.12)', color: '#64748b', border: '1px solid rgba(100, 116, 139, 0.25)' };
-      default: // DESIGNER
-        return { backgroundColor: 'rgba(236, 72, 153, 0.12)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.25)' };
     }
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: isEmployee ? '1fr' : '1fr 2.5fr', gap: '1.5rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '1.5rem' }}>
       
-      {/* Create Team Member Form — Admin/Manager/Developer only */}
-      {!isEmployee && (
+      {/* Create Team Member Form */}
       <div className="stat-card" style={{ padding: '1.5rem', alignSelf: 'start', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
           <UserPlus size={18} style={{ color: 'var(--color-primary)' }} /> Add Member
@@ -107,12 +97,8 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
               value={role}
               onChange={(e) => setRole(e.target.value as MemberRole)}
             >
-              <option value="DEVELOPER">Developer</option>
-              <option value="DESIGNER">Designer</option>
-              <option value="QA">QA / Tester</option>
               <option value="PRODUCT_MANAGER">Product Manager</option>
               <option value="INTERN">Intern</option>
-              <option value="EMPLOYEE">Employee</option>
             </select>
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -120,7 +106,6 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
           </button>
         </form>
       </div>
-      )}
 
       {/* Directory List Container */}
       <div className="stat-card" style={{ padding: '1.5rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -154,10 +139,6 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
               <option value="ALL">All Roles</option>
               <option value="PRODUCT_MANAGER">Product Manager</option>
               <option value="INTERN">Intern</option>
-              <option value="DEVELOPER">Developer</option>
-              <option value="DESIGNER">Designer</option>
-              <option value="QA">QA / Tester</option>
-              <option value="EMPLOYEE">Employee</option>
             </select>
           </div>
         </div>
@@ -196,8 +177,7 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
                     position: 'relative'
                   }}
                 >
-                  {/* Delete button — Admin/Manager/Developer only */}
-                  {!isEmployee && (
+                  {/* Delete button */}
                   <button
                     className="btn btn-danger"
                     style={{ 
@@ -219,7 +199,6 @@ export const MembersDirectory: React.FC<MembersDirectoryProps> = ({
                   >
                     <Trash2 size={12} />
                   </button>
-                  )}
 
                   {/* Profile Info */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>

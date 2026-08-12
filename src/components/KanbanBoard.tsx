@@ -11,8 +11,6 @@ import {
 } from 'lucide-react';
 import type { Task, TaskStatus, BoardColumn } from '../types';
 import { HIERARCHY_ENABLED } from '../config';
-import { useAuth } from '../context/AuthContext';
-import { useWorkspace } from '../context/WorkspaceContext';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -44,22 +42,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onStatusChange,
   allTasks,
 }) => {
-  const { currentUser } = useAuth();
-  const { userRole } = useWorkspace();
   const [draggedOverColumn, setDraggedOverColumn] = useState<TaskStatus | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [showFeatures, setShowFeatures] = useState(false);
-
-  // Derive current user's display name from email
-  const getCurrentUserName = (email: string | null) => {
-    if (!email) return '';
-    if (email.includes('@')) {
-      const prefix = email.split('@')[0];
-      return prefix.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-    }
-    return email;
-  };
-  const currentUserName = getCurrentUserName(currentUser);
 
   const getInitials = (name: string) => {
     if (!name) return '?';
@@ -154,20 +139,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     );
   }
 
-  // Apply visibility filter: EMPLOYEEs only see their own tasks
-  const applyRoleVisibility = (taskList: Task[]) => {
-    if (userRole !== 'EMPLOYEE') return taskList;
-    return taskList.filter(t => {
-      const name = currentUserName.toLowerCase();
-      if (!name) return false;
-      return (
-        (t.assignee  && t.assignee.toLowerCase()  === name) ||
-        (t.reporter  && t.reporter.toLowerCase()  === name) ||
-        (t.owner     && t.owner.toLowerCase().includes(name)) ||
-        (t.createdBy && t.createdBy.toLowerCase() === name)
-      );
-    });
-  };
+  // All authenticated users see complete Kanban board
+  const applyRoleVisibility = (taskList: Task[]) => taskList;
 
   const visibleTasks = applyRoleVisibility(
     HIERARCHY_ENABLED

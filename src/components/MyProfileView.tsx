@@ -33,9 +33,12 @@ export const MyProfileView: React.FC = () => {
 
   // Stats Calculations
   const userTasks = tasks.filter(t => {
-    const assigneeMatch = t.assignee && t.assignee.toLowerCase() === currentUserName.toLowerCase();
-    const ownerMatch = t.owner && t.owner.toLowerCase().includes(currentUserName.toLowerCase());
-    return assigneeMatch || ownerMatch;
+    const userName = (member?.name || currentUserName).toLowerCase();
+    const userEmail = (member?.email || currentUser || '').toLowerCase();
+    const assigneeMatch = t.assignee && (t.assignee.toLowerCase() === userName || (userEmail && t.assignee.toLowerCase() === userEmail));
+    const createdMatch = t.createdBy && (t.createdBy.toLowerCase() === userName || (currentUserId && t.createdBy === currentUserId) || (userEmail && t.createdBy.toLowerCase() === userEmail));
+    const reporterMatch = t.reporter && (t.reporter.toLowerCase() === userName || (userEmail && t.reporter.toLowerCase() === userEmail));
+    return assigneeMatch || createdMatch || reporterMatch;
   });
 
   const completedTasks = userTasks.filter(t => t.status === 'DONE');

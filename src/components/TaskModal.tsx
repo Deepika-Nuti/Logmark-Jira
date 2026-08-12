@@ -50,7 +50,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   allTasks,
   onSave,
   onDelete,
-  onRequestDelete,
+  onRequestDelete: _onRequestDelete,
   onRestoreTask,
 }) => {
   const { userRole, userDisplayName } = useWorkspace();
@@ -293,56 +293,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const currentUserName = userDisplayName;
-
-  const isIntern = userRole === 'INTERN';
-  const isEmployee = userRole === 'EMPLOYEE';
-  const isLimitedRole = isIntern || isEmployee;
-
-  const canEdit = !task || checkPermission(userRole, 'EDIT', task, currentUserName).allowed;
-  const canAssign = !task || checkPermission(userRole, 'ASSIGN', task, currentUserName).allowed;
-  const canDelete = task && checkPermission(userRole, 'DELETE', task, currentUserName).allowed;
-  const canCreate = !task && checkPermission(userRole, 'CREATE', { type }, currentUserName).allowed;
-
-  // Intern: can request deletion of own tasks
-  // isOwnTask uses all identity signals: display name, email, and userId
-  const currentUserEmail = currentUser?.toLowerCase() || '';
-  const currentUserIdLower = currentUserId?.toLowerCase() || '';
-  const isOwnTask = task && (
-    // Assignee match (name or email)
-    (task.assignee && (
-      task.assignee.toLowerCase() === currentUserName.toLowerCase() ||
-      (currentUserEmail && task.assignee.toLowerCase() === currentUserEmail)
-    )) ||
-    // Reporter match (name or email)
-    (task.reporter && (
-      task.reporter.toLowerCase() === currentUserName.toLowerCase() ||
-      (currentUserEmail && task.reporter.toLowerCase() === currentUserEmail)
-    )) ||
-    // Owner match (name or email, comma/slash split)
-    (task.owner && task.owner.split(/[,/]+/).map(o => o.trim().toLowerCase()).some(o =>
-      o === currentUserName.toLowerCase() || (currentUserEmail && o === currentUserEmail)
-    )) ||
-    // createdBy: could be UUID, email, or display name
-    (task.createdBy && (
-      task.createdBy.toLowerCase() === currentUserName.toLowerCase() ||
-      (currentUserIdLower && task.createdBy.toLowerCase() === currentUserIdLower) ||
-      (currentUserEmail && task.createdBy.toLowerCase() === currentUserEmail)
-    ))
-  );
-  const canRequestDelete = task && isIntern && isOwnTask && !task.deletionRequested;
-  const isDeveloper = userRole === 'DEVELOPER';
-  const isQA = userRole === 'QA';
-
-  const typeTooltip = "You don't have permission to create this work item type.";
-  const editTooltip = "You don't have permission to edit this work item.";
-  const assignTooltip = "Only Product Managers and Admins can assign work items.";
-
-  const ownerTooltip = "Only Product Managers and Admins can manage owners/reporters.";
-  const employeeTooltip = "Employees cannot edit features or estimate hours.";
-
-  const canCreateType = (tType: WorkItemType) => {
-    return checkPermission(userRole, 'CREATE', { type: tType }, currentUserName).allowed;
-  };
 
   const getRelativeTime = (isoString: string) => {
     if (!isoString) return '';
@@ -614,9 +564,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   };
 
-  const canDeleteAttachment = (att: Attachment) => {
-    if (userRole === 'ADMIN' || userRole === 'PRODUCT_MANAGER') return true;
-    return att.uploadedById === currentUserId;
+  const canDeleteAttachment = (_att: Attachment) => {
+    return true;
   };
 
   const formatBytes = (bytes: number) => {
@@ -793,8 +742,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 marginBottom: '1rem',
                 flexShrink: 0
               }}>
-                <span>⏳ Deletion requested by <strong>{task.deletionRequestedBy}</strong> — awaiting admin approval.</span>
-                {onRestoreTask && (userRole === 'ADMIN' || userRole === 'PRODUCT_MANAGER') && (
+                {onRestoreTask && (
                   <button
                     type="button"
                     onClick={() => onRestoreTask(task.id)}
@@ -860,17 +808,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                         className="form-select"
                         value={type}
                         onChange={(e) => setType(e.target.value as WorkItemType)}
-                        disabled={task ? !canEdit : false}
-                        title={task && !canEdit ? editTooltip : undefined}
                       >
-                        <option value="TASK" disabled={!canCreateType('TASK')} title={!canCreateType('TASK') ? typeTooltip : undefined}>Task</option>
+                        <option value="TASK">Task</option>
                         {HIERARCHY_ENABLED && (
-                          <option value="FEATURE" disabled={!canCreateType('FEATURE')} title={!canCreateType('FEATURE') ? "QA and Employees cannot create Feature items." : undefined}>
+                          <option value="FEATURE">
                             Feature (Parent Theme)
                           </option>
                         )}
-                        <option value="BUG" disabled={!canCreateType('BUG')} title={!canCreateType('BUG') ? typeTooltip : undefined}>Bug / Defect</option>
-                        <option value="IMPROVEMENT" disabled={!canCreateType('IMPROVEMENT')} title={!canCreateType('IMPROVEMENT') ? typeTooltip : undefined}>Improvement</option>
+                        <option value="BUG">Bug / Defect</option>
+                        <option value="IMPROVEMENT">Improvement</option>
                       </select>
                     </div>
                     
@@ -881,8 +827,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                           className="form-select"
                           value={parentFeatureId || ''}
                           onChange={(e) => setParentFeatureId(e.target.value || null)}
-                          disabled={!canEdit || isEmployee}
-                          title={!canEdit ? editTooltip : isEmployee ? "Employees cannot change parent features." : undefined}
                         >
                           <option value="">Select Parent Feature...</option>
                           {features.map((f) => (
@@ -905,8 +849,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
-                      disabled={!canEdit || !!(task && task.type === 'FEATURE' && isEmployee)}
-                      title={!canEdit ? editTooltip : (task && task.type === 'FEATURE' && isEmployee) ? employeeTooltip : undefined}
                     />
                   </div>
 
@@ -918,8 +860,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       placeholder="Describe the goals, parameters, and requirements of this issue..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      disabled={!canEdit || !!(task && task.type === 'FEATURE' && isEmployee)}
-                      title={!canEdit ? editTooltip : (task && task.type === 'FEATURE' && isEmployee) ? employeeTooltip : undefined}
                     />
                   </div>
                 </div>
@@ -939,8 +879,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                         placeholder="e.g. Backend, Auth, UI"
                         value={module}
                         onChange={(e) => setModule(e.target.value)}
-                        disabled={!canEdit || !!(task && task.type === 'FEATURE' && isEmployee)}
-                        title={!canEdit ? editTooltip : (task && task.type === 'FEATURE' && isEmployee) ? employeeTooltip : undefined}
                       />
                     </div>
 
@@ -953,8 +891,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                         className="form-select"
                         value={priority}
                         onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                        disabled={isEmployee}
-                        title={isEmployee ? "Employees cannot change priorities." : undefined}
                       >
                         <option value="LOW">Low</option>
                         <option value="MEDIUM">Medium</option>
@@ -977,8 +913,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       placeholder="Add brief technical comments, blockages, summaries..."
                       value={techNotes}
                       onChange={(e) => handleTechNotesChange(e.target.value)}
-                      disabled={!canEdit}
-                      title={!canEdit ? editTooltip : undefined}
                     />
                   </div>
                 </div>
@@ -1151,33 +1085,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </span>
                   
                   <div className="form-grid-2">
-                    {/* Owner — hidden for intern/employee */}
-                    {!isLimitedRole && (
-                      <div className="form-group">
-                        <label>Owner / Manager</label>
-                        <select
-                          className="form-select"
-                          value={owner}
-                          onChange={(e) => setOwner(e.target.value)}
-                          disabled={isDeveloper || isQA || isEmployee}
-                          title={(isDeveloper || isQA || isEmployee) ? ownerTooltip : undefined}
-                        >
-                          <option value="">No Owner assigned...</option>
-                          {members.map(m => (
-                            <option key={m.id} value={m.name}>{m.name} ({m.role.replace('_', ' ')})</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
                     <div className="form-group">
                       <label>Assignee</label>
                       <select
                         className="form-select"
                         value={assignee}
                         onChange={(e) => setAssignee(e.target.value)}
-                        disabled={!canAssign}
-                        title={!canAssign ? assignTooltip : undefined}
                       >
                         <option value="">Unassigned...</option>
                         {members.map(m => (
@@ -1186,24 +1099,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       </select>
                     </div>
 
-                    {/* Reporter — hidden for intern/employee */}
-                    {!isLimitedRole && (
-                      <div className="form-group">
-                        <label>Reporter</label>
-                        <select
-                          className="form-select"
-                          value={reporter}
-                          onChange={(e) => setReporter(e.target.value)}
-                          disabled={isDeveloper || isQA || isEmployee}
-                          title={(isDeveloper || isQA || isEmployee) ? ownerTooltip : undefined}
-                        >
-                          <option value="">No Reporter assigned...</option>
-                          {members.map(m => (
-                            <option key={m.id} value={m.name}>{m.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    <div className="form-group">
+                      <label>Reporter</label>
+                      <select
+                        className="form-select"
+                        value={reporter}
+                        onChange={(e) => setReporter(e.target.value)}
+                      >
+                        <option value="">No Reporter assigned...</option>
+                        {members.map(m => (
+                          <option key={m.id} value={m.name}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
 
                     <div className="form-group">
                       <label htmlFor="modal-task-due">Due Date</label>
@@ -1213,15 +1121,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                         className="form-input"
                         value={dueDate}
                         onChange={(e) => setDueDate(e.target.value)}
-                        disabled={!canEdit}
-                        title={!canEdit ? editTooltip : undefined}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Time Tracking — hidden for interns */}
-                {!isIntern && (
+                {/* Time Tracking */}
                 <div className="form-section-card">
                   <span className="form-section-title">
                     <Clock size={14} /> Time Tracker & Estimates
@@ -1237,8 +1142,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                         step="0.5"
                         value={timeEstimated || 0}
                         onChange={(e) => setTimeEstimated(parseFloat(e.target.value) || 0)}
-                        disabled={isEmployee}
-                        title={isEmployee ? employeeTooltip : undefined}
                       />
                     </div>
 
@@ -1251,8 +1154,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                         step="0.5"
                         value={timeLogged || 0}
                         onChange={(e) => setTimeLogged(parseFloat(e.target.value) || 0)}
-                        disabled={isEmployee}
-                        title={isEmployee ? employeeTooltip : undefined}
                       />
                     </div>
                   </div>
@@ -1274,7 +1175,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     </div>
                   )}
                 </div>
-                )}
 
                 {/* Time tracking widgets inside Assignment tab */}
                 {task && (
@@ -1294,11 +1194,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                               <Pause size={14} />
                             </button>
                           ) : (
-                            <button type="button" className="btn btn-primary" style={{ padding: '0.4rem' }} onClick={startTimer} title="Start stopwatch" disabled={isEmployee}>
+                            <button type="button" className="btn btn-primary" style={{ padding: '0.4rem' }} onClick={startTimer} title="Start stopwatch">
                               <Play size={14} />
                             </button>
                           )}
-                          <button type="button" className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={resetTimer} title="Reset" disabled={isEmployee}>
+                          <button type="button" className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={resetTimer} title="Reset">
                             <RotateCcw size={14} />
                           </button>
                           <button 
@@ -1306,7 +1206,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                             className="btn btn-primary" 
                             style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} 
                             onClick={logTimerTime}
-                            disabled={timerSeconds === 0 || isEmployee}
+                            disabled={timerSeconds === 0}
                           >
                             Log Time
                           </button>
@@ -1323,8 +1223,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                           step="0.1"
                           value={manualLogAmount}
                           onChange={(e) => setManualLogAmount(e.target.value)}
-                          disabled={isEmployee}
-                          title={isEmployee ? employeeTooltip : undefined}
                         />
                         <input
                           type="text"
@@ -1333,10 +1231,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                           placeholder="Add details of work..."
                           value={manualLogComment}
                           onChange={(e) => setManualLogComment(e.target.value)}
-                          disabled={isEmployee}
-                          title={isEmployee ? employeeTooltip : undefined}
                         />
-                        <button type="button" className="btn btn-secondary" onClick={handleManualLog} disabled={isEmployee} title={isEmployee ? employeeTooltip : undefined}>
+                        <button type="button" className="btn btn-secondary" onClick={handleManualLog}>
                           Log Hours
                         </button>
                       </div>
@@ -1467,14 +1363,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {/* Sticky Footer */}
           <div className="modal-footer" style={{ flexShrink: 0, borderTop: '1px solid var(--border-color)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            {/* Admin permanent delete */}
-            {task && onDelete && canDelete && (
+            {task && onDelete && (
               <button
                 type="button"
                 className="btn btn-danger"
                 style={{ marginRight: 'auto' }}
                 onClick={() => {
-                  if (confirm("Permanently delete this work item? This action is irreversible.")) {
+                  if (confirm("Delete this work item?")) {
                     onDelete(task.id);
                     onClose();
                   }
@@ -1483,30 +1378,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 <Trash2 size={16} /> Delete
               </button>
             )}
-            {/* Intern: request deletion */}
-            {task && canRequestDelete && onRequestDelete && (
-              <button
-                type="button"
-                className="btn btn-danger"
-                style={{ marginRight: 'auto' }}
-                onClick={() => {
-                  if (confirm("Request deletion of this task? An admin will need to approve before it\'s removed.")) {
-                    onRequestDelete(task.id);
-                    onClose();
-                  }
-                }}
-              >
-                <Trash2 size={16} /> Request Deletion
-              </button>
-            )}
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
             <button 
               type="submit" 
               className="btn btn-primary"
-              disabled={task ? !canEdit : !canCreate}
-              title={task ? (!canEdit ? editTooltip : undefined) : (!canCreate ? typeTooltip : undefined)}
             >
               <Save size={16} /> {task ? 'Save Changes' : 'Create Task'}
             </button>

@@ -55,78 +55,13 @@ export function parseComments(commentsStr: string | null | undefined): ThreadedC
 }
 
 export function checkPermission(
-  role: MemberRole,
-  action: 'CREATE' | 'EDIT' | 'DELETE' | 'IMPORT' | 'EXPORT' | 'ASSIGN' | 'PRIORITY' | 'MOVE' | 'COMMENT' | 'STATUS' | 'LOG_WORK',
-  task?: Partial<Task>,
-  userName?: string
+  _role: MemberRole,
+  _action: 'CREATE' | 'EDIT' | 'DELETE' | 'IMPORT' | 'EXPORT' | 'ASSIGN' | 'PRIORITY' | 'MOVE' | 'COMMENT' | 'STATUS' | 'LOG_WORK',
+  _task?: Partial<Task>,
+  _userName?: string
 ): { allowed: boolean; reason?: string } {
-  // ADMIN has full access
-  if (role === 'ADMIN') {
-    return { allowed: true };
-  }
-
-  // PRODUCT_MANAGER has almost full access except deletion
-  if (role === 'PRODUCT_MANAGER') {
-    if (action === 'DELETE') {
-      return { allowed: false, reason: "Only Administrators can delete work items." };
-    }
-    return { allowed: true };
-  }
-
-  // DEVELOPER permissions — broad access for development & testing
-  if (role === 'DEVELOPER') {
-    if (action === 'DELETE') {
-      return { allowed: false, reason: "Developers do not have permission to delete work items." };
-    }
-    return { allowed: true };
-  }
-
-  // QA permissions
-  if (role === 'QA') {
-    if (['DELETE', 'IMPORT'].includes(action)) {
-      return { allowed: false, reason: `QA roles do not have permission to ${action.toLowerCase()} work items.` };
-    }
-    if (action === 'CREATE' && task?.type === 'FEATURE') {
-      return { allowed: false, reason: "QA roles cannot create Feature items." };
-    }
-    if (['STATUS', 'COMMENT', 'EDIT'].includes(action)) {
-      return { allowed: true };
-    }
-    return { allowed: false, reason: "QA roles do not have permission for this action." };
-  }
-
-  // EMPLOYEE & INTERN permissions — can manage their own work items
-  if (role === 'EMPLOYEE' || role === 'INTERN') {
-    if (['DELETE', 'IMPORT'].includes(action)) {
-      return { allowed: false, reason: `${role === 'INTERN' ? 'Interns' : 'Employees'} do not have permission to ${action.toLowerCase()} work items.` };
-    }
-    if (action === 'ASSIGN') {
-      return { allowed: false, reason: `${role === 'INTERN' ? 'Interns' : 'Employees'} cannot assign work items to others.` };
-    }
-    if (action === 'CREATE' && task?.type === 'FEATURE') {
-      return { allowed: false, reason: `${role === 'INTERN' ? 'Interns' : 'Employees'} cannot create Feature items.` };
-    }
-    if (action === 'CREATE' && (task?.type === 'TASK' || task?.type === 'BUG' || task?.type === 'IMPROVEMENT')) {
-      return { allowed: true };
-    }
-    const isOwn = task && userName && (
-      (task.assignee && task.assignee.toLowerCase() === userName.toLowerCase()) ||
-      (task.reporter && task.reporter.toLowerCase() === userName.toLowerCase()) ||
-      (task.owner && task.owner.toLowerCase().includes(userName.toLowerCase())) ||
-      (task.createdBy && task.createdBy.toLowerCase() === userName.toLowerCase())
-    );
-    if (['EDIT', 'STATUS', 'MOVE', 'LOG_WORK', 'PRIORITY'].includes(action)) {
-      if (!task?.id) return { allowed: true }; // New task creation
-      if (isOwn) return { allowed: true };
-      return { allowed: false, reason: `${role === 'INTERN' ? 'Interns' : 'Employees'} can only modify their own work items.` };
-    }
-    if (action === 'COMMENT') {
-      return { allowed: true };
-    }
-    return { allowed: false, reason: "Unauthorized role for this action." };
-  }
-
-  return { allowed: false, reason: "Unauthorized role." };
+  // All authenticated users have equal access for all normal work item operations
+  return { allowed: true };
 }
 
 interface WorkspaceContextType {
@@ -232,7 +167,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                             members.find(m => m.name.toLowerCase() === currentUserName.toLowerCase());
   const userRole: MemberRole = currentUserMember 
     ? currentUserMember.role 
-    : (currentUser && ORG_MEMBER_EMAIL_ROLES[currentUser.toLowerCase()]) || 'EMPLOYEE';
+    : (currentUser && ORG_MEMBER_EMAIL_ROLES[currentUser.toLowerCase()]) || 'INTERN';
   const userDisplayName = currentUserMember ? currentUserMember.name : currentUserName;
 
   const effectiveRole: MemberRole =
@@ -273,7 +208,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         id: memberData.id || `MEM-${Math.floor(1000 + Math.random() * 9000)}`,
         name: memberData.name,
         email: memberData.email || `${memberData.name.toLowerCase().replace(/\s+/g, '.')}@logmark-ai.com`,
-        role: memberData.role || (memberData.email && ORG_MEMBER_EMAIL_ROLES[memberData.email.toLowerCase()]) || 'EMPLOYEE',
+        role: memberData.role || (memberData.email && ORG_MEMBER_EMAIL_ROLES[memberData.email.toLowerCase()]) || 'INTERN',
         avatarColor: memberData.avatarColor || '#3b82f6',
       }]);
       return updated;
@@ -462,7 +397,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             status: t.status as TaskStatus,
             priority: t.priority,
             dueDate: t.due_date || '',
-            assignee: t.assignee || '',
+            assignee: t.assignee || owner || t.owner || '',
             reporter: t.reporter || '',
             timeEstimated: parseFloat(t.time_estimated) || 0,
             timeLogged: parseFloat(t.time_logged) || 0,
@@ -725,11 +660,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           addToast(checkAssign.reason || 'You do not have permission to assign this work item.', 'error');
           return;
         }
-      }
-
-      if (oldTask.type === 'FEATURE' && effectiveRole === 'EMPLOYEE') {
-        addToast("Employees do not have permission to edit Feature items.", "error");
-        return;
       }
 
       const auditLogs: ActivityLog[] = [...(taskData.activities || oldTask.activities || [])];
@@ -1123,19 +1053,24 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     }
 
-    // Update the state immediately for responsive UI
+    // Optimistic UI update
+    const previousTasks = tasks;
     setTasksState(updated);
     addToast(`Status updated to ${newStatus.replace('_', ' ')}`, 'success');
 
-    // Run the Supabase update asynchronously in the background
+    // Run the Supabase update asynchronously with rollback error handling
     const client = supabase;
     if (isSupabaseConfigured && client) {
       (async () => {
         try {
-          await client.from('tasks').update({
+          const { error } = await client.from('tasks').update({
             status: newStatus,
             updated_at: logEntry.timestamp,
           }).eq('id', taskId);
+
+          if (error) {
+            throw error;
+          }
 
           await client.from('activity_logs').insert(
             activities.map(act => ({
@@ -1149,7 +1084,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // Sync parent feature rollup to database
           if (oldTask.parentFeatureId) {
             const parentAfter = updated.find(t => t.id === oldTask.parentFeatureId);
-            const parentBefore = tasks.find(t => t.id === oldTask.parentFeatureId);
+            const parentBefore = previousTasks.find(t => t.id === oldTask.parentFeatureId);
             if (parentAfter && parentBefore && parentAfter.status !== parentBefore.status) {
               await client.from('tasks').update({
                 status: parentAfter.status,
@@ -1165,8 +1100,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               });
             }
           }
-        } catch (err) {
-          console.error("Supabase sync failed in background:", err);
+        } catch (err: any) {
+          console.error("Supabase status sync failed:", err);
+          // Rollback to previous state
+          setTasksState(previousTasks);
+          addToast(`Failed to save status update to server. Reverting card position.`, 'error');
         }
       })();
     }
@@ -1198,7 +1136,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         (userEmailLower && task.createdBy.toLowerCase() === userEmailLower)
       ))
     );
-    if (!isOwn && effectiveRole !== 'ADMIN' && effectiveRole !== 'PRODUCT_MANAGER') {
+    if (!isOwn) {
       addToast('You can only request deletion of your own tasks.', 'error');
       return;
     }

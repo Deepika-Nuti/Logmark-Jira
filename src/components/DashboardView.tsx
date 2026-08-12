@@ -13,9 +13,7 @@ import {
   Sparkles,
   Activity,
   Wifi,
-  WifiOff,
-  Trash2,
-  RotateCcw
+  WifiOff
 } from 'lucide-react';
 import type { Task, Member, ProjectStats } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -39,8 +37,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onCreateWorkItem,
   onImportSpreadsheet,
   onNavigate,
-  onDeleteTask,
-  onRestoreTask,
+  onDeleteTask: _onDeleteTask,
+  onRestoreTask: _onRestoreTask,
 }) => {
   const { currentUserId, currentUser } = useAuth();
   const { userRole: effectiveRole } = useWorkspace();
@@ -49,7 +47,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     // Satisfy TypeScript unused variable check
   }
 
-  const isEmployee = effectiveRole === 'EMPLOYEE' || effectiveRole === 'INTERN';
+  const isEmployee = false;
 
   const getUserName = (userVal: string | null) => {
     if (!userVal) return 'Employee';
@@ -79,26 +77,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     ? Math.round((doneCount / tasks.length) * 100) 
     : 0;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   // Workload calculations per member in the runtime member registry
   const memberWorkload = members.map(m => {
     const assignedTasks = tasks.filter(t => {
       const assigneeMatch = (t.assignee && t.assignee.toLowerCase() === m.name.toLowerCase()) || 
-                            (t.assignee && m.email && t.assignee.toLowerCase() === m.email.toLowerCase());
-      const ownerMatch = t.owner && t.owner.split(/[,/]+/).map(o => o.trim().toLowerCase()).some(o => o === m.name.toLowerCase() || (m.email && o === m.email.toLowerCase()));
-      return assigneeMatch || ownerMatch;
+                            (t.assignee && m.email && t.assignee.toLowerCase() === m.email.toLowerCase()) ||
+                            (!t.assignee && t.owner && (t.owner.toLowerCase().includes(m.name.toLowerCase()) || (m.email && t.owner.toLowerCase().includes(m.email.toLowerCase()))));
+      return assigneeMatch;
     });
-    const activeTasks = assignedTasks.filter(t => t.status !== 'DONE').length;
-    const doneTasks = assignedTasks.filter(t => t.status === 'DONE').length;
-    const utilization = assignedTasks.length > 0 
-      ? Math.round((doneTasks / assignedTasks.length) * 100) 
+
+    const toDoCount = assignedTasks.filter(t => t.status === 'TODO').length;
+    const inProgressCount = assignedTasks.filter(t => t.status === 'IN_PROGRESS').length;
+    const reviewCount = assignedTasks.filter(t => t.status === 'IN_REVIEW').length;
+    const backlogCount = assignedTasks.filter(t => t.status === 'BACKLOG').length;
+    const doneCount = assignedTasks.filter(t => t.status === 'DONE').length;
+    const pendingCount = toDoCount + inProgressCount + reviewCount + backlogCount;
+
+    const overdueCount = assignedTasks.filter(t => {
+      if (!t.dueDate || t.status === 'DONE') return false;
+      const due = new Date(t.dueDate);
+      due.setHours(0, 0, 0, 0);
+      return due < today;
+    }).length;
+
+    const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.timeEstimated || 0), 0);
+    const loggedHours = assignedTasks.reduce((sum, t) => sum + (t.timeLogged || 0), 0);
+
+    const completionPercent = assignedTasks.length > 0 
+      ? Math.round((doneCount / assignedTasks.length) * 100) 
       : 0;
 
     return {
       ...m,
-      taskCount: assignedTasks.length,
-      activeTasks,
-      doneCount: doneTasks,
-      utilization,
+      assigned: assignedTasks.length,
+      pending: pendingCount,
+      toDo: toDoCount,
+      inProgress: inProgressCount,
+      review: reviewCount,
+      backlog: backlogCount,
+      done: doneCount,
+      overdue: overdueCount,
+      estimatedHours,
+      loggedHours,
+      completionPercent,
     };
   });
 
@@ -489,21 +513,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <p style={{ fontSize: '0.85rem', margin: 0 }}>No team members created yet.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
                 {memberWorkload.map(m => {
-                  const totalAssigned = m.taskCount;
-                  const activeCount = m.activeTasks;
-                  const completedCount = m.doneCount;
-                  const utilizationPercent = m.utilization;
-
                   return (
-                    <div key={m.id} className="task-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+                    <div key={m.id} className="task-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
                       
                       {/* Avatar, Name, Email, Role Badge */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{
-                          width: '40px',
-                          height: '40px',
+                          width: '42px',
+                          height: '42px',
                           borderRadius: '50%',
                           backgroundColor: m.avatarColor || '#3b82f6',
                           color: '#fff',
@@ -511,7 +530,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 800,
-                          fontSize: '0.95rem',
+                          fontSize: '1rem',
                           boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                           flexShrink: 0
                         }}>
@@ -519,53 +538,64 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{m.name}</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{m.name}</span>
                             <span style={{ 
-                              fontSize: '0.6rem', 
-                              fontWeight: 700, 
-                              padding: '0.1rem 0.35rem', 
+                              fontSize: '0.62rem', 
+                              fontWeight: 800, 
+                              padding: '0.12rem 0.4rem', 
                               borderRadius: '4px',
                               ...getRoleBadgeStyle(m.role)
                             }}>
                               {m.role.replace('_', ' ')}
                             </span>
                           </div>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.1rem' }} title={m.email}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.1rem' }} title={m.email}>
                             {m.email}
                           </span>
                         </div>
                       </div>
 
                       {/* Workload Stats Grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', backgroundColor: 'var(--bg-app)', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', backgroundColor: 'var(--bg-app)', padding: '0.6rem 0.4rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                         <div style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Assigned</span>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>{totalAssigned}</span>
+                          <span style={{ display: 'block', fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Assigned</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.assigned}</span>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Active</span>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--status-progress-text)' }}>{activeCount}</span>
+                          <span style={{ display: 'block', fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Pending</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--status-progress-text)' }}>{m.pending}</span>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Done</span>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--status-done-text)' }}>{completedCount}</span>
+                          <span style={{ display: 'block', fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Done</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--status-done-text)' }}>{m.done}</span>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Overdue</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: m.overdue > 0 ? '#ef4444' : 'var(--text-muted)' }}>{m.overdue}</span>
                         </div>
                       </div>
 
-                      {/* Progress Bar & Utilization */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                          <span>Utilization</span>
-                          <span style={{ fontWeight: 800 }}>{utilizationPercent}%</span>
-                        </div>
-                        <div style={{ height: '6px', background: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ 
-                            width: `${utilizationPercent}%`, 
-                            height: '100%', 
-                            backgroundColor: utilizationPercent === 100 ? 'var(--status-done-text)' : 'var(--color-primary)', 
-                            borderRadius: '3px'
-                          }} />
-                        </div>
+                      {/* Detailed Status Counts */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)', padding: '0.2rem 0.4rem' }}>
+                        <span>To Do: <strong>{m.toDo}</strong></span>
+                        <span>In Progress: <strong>{m.inProgress}</strong></span>
+                        <span>Review: <strong>{m.review}</strong></span>
+                      </div>
+
+                      {/* Hours & Completion */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+                        <span>Estimated: <strong>{m.estimatedHours}h</strong> | Logged: <strong>{m.loggedHours}h</strong></span>
+                        <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Completion: {m.completionPercent}%</span>
+                      </div>
+
+                      {/* Workload Progress Bar */}
+                      <div style={{ height: '6px', background: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${m.completionPercent}%`, 
+                          height: '100%', 
+                          backgroundColor: m.completionPercent === 100 ? 'var(--status-done-text)' : 'var(--color-primary)', 
+                          borderRadius: '3px'
+                        }} />
                       </div>
 
                     </div>
@@ -691,67 +721,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </div>
-
-      {/* ── Pending Deletions Panel (Admin/PM only) ── */}
-      {(effectiveRole === 'ADMIN' || effectiveRole === 'PRODUCT_MANAGER') && (() => {
-        const pendingTasks = tasks.filter(t => t.deletionRequested);
-        if (pendingTasks.length === 0) return null;
-        return (
-          <div style={{ marginTop: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <Trash2 size={16} style={{ color: '#ef4444' }} />
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Pending Deletions</h3>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '10px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}>
-                {pendingTasks.length}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {pendingTasks.map(task => (
-                <div key={task.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '0.75rem 1rem', borderRadius: '10px', gap: '1rem',
-                  backgroundColor: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.2)',
-                  boxShadow: '0 1px 4px rgba(239,68,68,0.06)'
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                      <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{task.id}</span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.06rem 0.3rem', borderRadius: '4px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>⏳ PENDING DELETE</span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                      Requested by <strong>{task.deletionRequestedBy}</strong>
-                      {task.deletionRequestedAt && ` — ${getRelativeTime(task.deletionRequestedAt)}`}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                    {onRestoreTask && (
-                      <button
-                        onClick={() => onRestoreTask(task.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)', cursor: 'pointer' }}
-                      >
-                        <RotateCcw size={12} /> Restore
-                      </button>
-                    )}
-                    {onDeleteTask && (
-                      <button
-                        onClick={() => {
-                          if (confirm(`Permanently delete "${task.title}"? This cannot be undone.`)) {
-                            onDeleteTask(task.id);
-                          }
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer' }}
-                      >
-                        <Trash2 size={12} /> Delete Forever
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
     </div>
   );

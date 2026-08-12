@@ -36,7 +36,7 @@ export const DEFAULT_MEMBERS: Member[] = [
   {
     id: 'MEM-105',
     name: 'Manasa',
-    email: 'manasa@logmark-ai.com',
+    email: 'mansa@logmark-ai.com',
     role: 'INTERN',
     avatarColor: '#f59e0b',
   },
@@ -57,6 +57,7 @@ export const ORG_MEMBER_EMAIL_ROLES: Record<string, MemberRole> = {
   'togyjose@logmark-ai.com': 'PRODUCT_MANAGER',
   'mohan@orglens.com': 'PRODUCT_MANAGER',
   'deepika.nuti@logmark-ai.com': 'INTERN',
+  'mansa@logmark-ai.com': 'INTERN',
   'manasa@logmark-ai.com': 'INTERN',
   'oliver.jude@logmark-ai.com': 'INTERN',
 };

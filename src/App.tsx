@@ -457,7 +457,7 @@ function MainAppContent() {
           id: 'MEM-' + Math.floor(100 + Math.random() * 900),
           name: cleanName,
           email: '',
-          role: 'DEVELOPER',
+          role: 'INTERN',
           avatarColor: colors[Math.floor(Math.random() * colors.length)]
         });
       }
@@ -846,142 +846,85 @@ function MainAppContent() {
         </div>
       )}
 
-      <main className="dashboard-main">
-        {/* Navigation Tabs (Phase 6 - Persist Navigation) */}
-        <section className="toolbar" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
-          <div className="view-tabs" style={{ display: 'inline-flex', padding: '4px', backgroundColor: 'var(--bg-hover)', borderRadius: '8px', border: '1px solid var(--border-color)', gap: '4px' }}>
-            <button
-              className={`view-tab-btn ${activeView === 'DASHBOARD' ? 'active' : ''}`}
-              style={{ border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem' }}
-              onClick={() => setActiveView('DASHBOARD')}
-            >
-              <LayoutDashboard size={14} /> Logmark Analytics
-            </button>
-            <button
-              className={`view-tab-btn ${activeView === 'BOARD' ? 'active' : ''}`}
-              style={{ border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem' }}
-              onClick={() => setActiveView('BOARD')}
-            >
-              <Kanban size={14} /> Kanban Board
-            </button>
-            <button
-              className={`view-tab-btn ${activeView === 'BACKLOG' ? 'active' : ''}`}
-              style={{ border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem' }}
-              onClick={() => setActiveView('BACKLOG')}
-            >
-              <ListTodo size={14} /> Backlog List
-            </button>
-            <button
-              className={`view-tab-btn ${activeView === 'MEMBERS' ? 'active' : ''}`}
-              style={{ border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem' }}
-              onClick={() => setActiveView('MEMBERS')}
-            >
-              <Users size={14} /> Team Registry
-            </button>
-            <button
-              className={`view-tab-btn ${activeView === 'PROFILE' ? 'active' : ''}`}
-              style={{ border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem' }}
-              onClick={() => setActiveView('PROFILE')}
-            >
-              <User size={14} /> My Profile
-            </button>
-          </div>
-
-          {/* Interactive Filters & Sorting Toolbar */}
-          {(activeView === 'BOARD' || activeView === 'BACKLOG') && (
-            <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', width: '100%' }}>
-              <div className="search-filter-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                
-                {/* 6. Kanban Work Items Toggle Segment */}
-                <div style={{
-                  display: 'flex',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '20px',
-                  padding: '2px',
-                  marginRight: '0.5rem'
-                }}>
-                  <button
-                    type="button"
-                    style={{
-                      padding: '0.35rem 0.85rem',
-                      borderRadius: '18px',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: !myWorkItemsOnly ? 'var(--color-primary)' : 'transparent',
-                      color: !myWorkItemsOnly ? '#fff' : 'var(--text-secondary)'
-                    }}
-                    onClick={() => setMyWorkItemsOnly(false)}
-                  >
-                    All Work Items
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      padding: '0.35rem 0.85rem',
-                      borderRadius: '18px',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: myWorkItemsOnly ? 'var(--color-primary)' : 'transparent',
-                      color: myWorkItemsOnly ? '#fff' : 'var(--text-secondary)'
-                    }}
-                    onClick={() => setMyWorkItemsOnly(true)}
-                  >
-                    My Work Items
-                  </button>
-                </div>
-
-                <div className="search-input-wrapper">
-                  <Search className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search summaries, tickets..."
-                    className="search-input"
-                    value={filters.search}
-                    onChange={(e) => setFilters({ search: e.target.value })}
-                  />
-                </div>
-
-                {/* Assignee Filter Dropdown */}
-                <select
-                  className="select-filter"
-                  value={filters.assignee}
-                  onChange={(e) => setFilters({ assignee: e.target.value })}
+      <main className="dashboard-main" style={{ paddingBottom: '4.5rem' }}>
+        {/* Interactive Filters & Sorting Toolbar */}
+        {(activeView === 'BOARD' || activeView === 'BACKLOG') && (
+          <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', width: '100%', marginBottom: '1rem' }}>
+            <div className="search-filter-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              
+              {/* Kanban Work Items Toggle Segment */}
+              <div style={{
+                display: 'flex',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '20px',
+                padding: '2px',
+                marginRight: '0.5rem'
+              }}>
+                <button
+                  type="button"
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '18px',
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    backgroundColor: !myWorkItemsOnly ? 'var(--color-primary)' : 'transparent',
+                    color: !myWorkItemsOnly ? '#fff' : 'var(--text-secondary)'
+                  }}
+                  onClick={() => setMyWorkItemsOnly(false)}
                 >
-                  <option value="ALL">All Assignees</option>
-                  <option value="UNASSIGNED">Unassigned</option>
-                  {filters.assignee && filters.assignee !== 'ALL' && filters.assignee !== 'UNASSIGNED' && !members.some(m => m.name === filters.assignee) && (
-                    <option value={filters.assignee}>{filters.assignee}</option>
-                  )}
-                  {members.map((m) => (
-                    <option key={m.id} value={m.name}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Owner Filter */}
-                <select
-                  className="select-filter"
-                  value={filters.owner || 'ALL'}
-                  onChange={(e) => setFilters({ owner: e.target.value })}
+                  All Work Items
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '18px',
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    backgroundColor: myWorkItemsOnly ? 'var(--color-primary)' : 'transparent',
+                    color: myWorkItemsOnly ? '#fff' : 'var(--text-secondary)'
+                  }}
+                  onClick={() => setMyWorkItemsOnly(true)}
                 >
-                  <option value="ALL">All Owners</option>
-                  {filters.owner && filters.owner !== 'ALL' && !tasks.some(t => t.owner === filters.owner) && (
-                    <option value={filters.owner}>Owner: {filters.owner}</option>
-                  )}
-                  {Array.from(new Set(tasks.map(t => t.owner).filter(Boolean))).map((ownerName) => (
-                    <option key={ownerName} value={ownerName}>
-                      Owner: {ownerName}
-                    </option>
-                  ))}
-                </select>
+                  My Work Items
+                </button>
+              </div>
+
+              <div className="search-input-wrapper">
+                <Search className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search summaries, tickets..."
+                  className="search-input"
+                  value={filters.search}
+                  onChange={(e) => setFilters({ search: e.target.value })}
+                />
+              </div>
+
+              {/* Assignee Filter Dropdown */}
+              <select
+                className="select-filter"
+                value={filters.assignee}
+                onChange={(e) => setFilters({ assignee: e.target.value })}
+              >
+                <option value="ALL">All Assignees</option>
+                <option value="UNASSIGNED">Unassigned</option>
+                {filters.assignee && filters.assignee !== 'ALL' && filters.assignee !== 'UNASSIGNED' && !members.some(m => m.name === filters.assignee) && (
+                  <option value={filters.assignee}>{filters.assignee}</option>
+                )}
+                {members.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
 
                 <select
                   className="select-filter"
@@ -1100,7 +1043,6 @@ function MainAppContent() {
               </div>
             </div>
           )}
-        </section>
 
         {/* View switching layout */}
         {activeView === 'PROFILE' ? (
@@ -1191,10 +1133,70 @@ function MainAppContent() {
         )}
       </main>
 
-      {/* 7. Workspace Footer */}
+      {/* Primary Bottom Navigation Bar */}
+      <nav className="bottom-navbar" style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        backgroundColor: 'var(--bg-card)',
+        borderTop: '1px solid var(--border-color)',
+        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.08)',
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '0.4rem 1rem',
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          maxWidth: '650px',
+          width: '100%',
+          justifyContent: 'space-between',
+        }}>
+          <button
+            className={`view-tab-btn ${activeView === 'DASHBOARD' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
+            onClick={() => setActiveView('DASHBOARD')}
+          >
+            <LayoutDashboard size={16} /> <span>Dashboard</span>
+          </button>
+          <button
+            className={`view-tab-btn ${activeView === 'BOARD' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
+            onClick={() => setActiveView('BOARD')}
+          >
+            <Kanban size={16} /> <span>Kanban</span>
+          </button>
+          <button
+            className={`view-tab-btn ${activeView === 'BACKLOG' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
+            onClick={() => setActiveView('BACKLOG')}
+          >
+            <ListTodo size={16} /> <span>Backlog</span>
+          </button>
+          <button
+            className={`view-tab-btn ${activeView === 'MEMBERS' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
+            onClick={() => setActiveView('MEMBERS')}
+          >
+            <Users size={16} /> <span>Team</span>
+          </button>
+          <button
+            className={`view-tab-btn ${activeView === 'PROFILE' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
+            onClick={() => setActiveView('PROFILE')}
+          >
+            <User size={16} /> <span>Profile</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Workspace Footer */}
       <footer style={{
         marginTop: '2rem',
-        padding: '1.5rem 1rem',
+        padding: '1.5rem 1rem 4rem 1rem',
         borderTop: '1px solid var(--border-color)',
         textAlign: 'center',
         fontSize: '0.8rem',

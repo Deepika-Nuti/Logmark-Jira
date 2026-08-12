@@ -2,7 +2,7 @@ export type TaskStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DON
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type MemberRole = 'ADMIN' | 'DEVELOPER' | 'DESIGNER' | 'QA' | 'PRODUCT_MANAGER' | 'EMPLOYEE' | 'INTERN';
+export type MemberRole = 'PRODUCT_MANAGER' | 'INTERN';
 
 export type WorkItemType = 'FEATURE' | 'TASK' | 'BUG' | 'IMPROVEMENT';
 

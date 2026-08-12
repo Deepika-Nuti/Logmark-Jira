@@ -3,7 +3,6 @@ import { Calendar, Trash2, Edit3, ClipboardList, ChevronDown, ChevronRight, Tag 
 import type { Task } from '../types';
 import { HIERARCHY_ENABLED } from '../config';
 import { useAuth } from '../context/AuthContext';
-import { useWorkspace } from '../context/WorkspaceContext';
 
 interface BacklogViewProps {
   tasks: Task[];
@@ -17,8 +16,7 @@ export const BacklogView: React.FC<BacklogViewProps> = ({
   onDeleteTask,
 }) => {
   const { currentUser } = useAuth();
-  const { userRole } = useWorkspace();
-  const isEmployee = userRole === 'EMPLOYEE';
+  const isEmployee = false;
 
   // Derive display name from email
   const getCurrentUserName = (email: string | null) => {
@@ -180,15 +178,15 @@ export const BacklogView: React.FC<BacklogViewProps> = ({
           </span>
         </div>
 
-        {/* Col 4: Owner / Assignee */}
+        {/* Col 4: Assignee */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
-          {task.owner ? (
+          {task.assignee ? (
             <>
               <div style={{
                 width: '18px',
                 height: '18px',
                 borderRadius: '50%',
-                backgroundColor: getAvatarColor(task.owner),
+                backgroundColor: getAvatarColor(task.assignee),
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -196,10 +194,10 @@ export const BacklogView: React.FC<BacklogViewProps> = ({
                 fontSize: '0.6rem',
                 fontWeight: 700
               }}>
-                {getInitials(task.owner)}
+                {getInitials(task.assignee)}
               </div>
               <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80px', fontWeight: 500 }}>
-                {task.owner}
+                {task.assignee}
               </span>
             </>
           ) : (
@@ -383,15 +381,15 @@ export const BacklogView: React.FC<BacklogViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Col 4: Owner */}
+                  {/* Col 4: Assignee */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
-                    {feature.owner ? (
+                    {feature.assignee ? (
                       <>
                         <div style={{
                           width: '18px',
                           height: '18px',
                           borderRadius: '50%',
-                          backgroundColor: getAvatarColor(feature.owner),
+                          backgroundColor: getAvatarColor(feature.assignee),
                           color: '#fff',
                           display: 'flex',
                           alignItems: 'center',
@@ -399,12 +397,12 @@ export const BacklogView: React.FC<BacklogViewProps> = ({
                           fontSize: '0.6rem',
                           fontWeight: 700
                         }}>
-                          {getInitials(feature.owner)}
+                          {getInitials(feature.assignee)}
                         </div>
-                        <span style={{ fontWeight: 500 }}>{feature.owner}</span>
+                        <span style={{ fontWeight: 500 }}>{feature.assignee}</span>
                       </>
                     ) : (
-                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No Owner</span>
+                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unassigned</span>
                     )}
                   </div>
 
