@@ -749,38 +749,18 @@ function MainAppContent() {
         </div>
         <div className="header-actions">
           
-          {/* 1. Connection Status Indicator Widget */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.4rem 0.75rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            color: 'var(--text-secondary)'
-          }}>
-            {isOnline ? (
+          {/* Connection Status Badge */}
+          <div className="header-status-badge">
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              backgroundColor: isOnline ? '#16a34a' : '#dc2626',
+              display: 'inline-block'
+            }} />
+            <span>{isOnline ? 'Connected' : 'Offline'}</span>
+            {currentUser && (
               <>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-                <span>Connected</span>
-                <span style={{ opacity: 0.5 }}>|</span>
-                <span>Workspace: Logmark AI</span>
-                {currentUser && (
-                  <>
-                    <span style={{ opacity: 0.5 }}>|</span>
-                    <span>Logged in as: {userDisplayName}</span>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
-                <span>Offline</span>
-                <span style={{ opacity: 0.5 }}>|</span>
-                <span style={{ color: 'var(--color-danger)' }}>Changes may not be synchronized.</span>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <span>{userDisplayName}</span>
               </>
             )}
           </div>
@@ -1134,61 +1114,47 @@ function MainAppContent() {
       </main>
 
       {/* Primary Bottom Navigation Bar */}
-      <nav className="bottom-navbar" style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        backgroundColor: 'var(--bg-card)',
-        borderTop: '1px solid var(--border-color)',
-        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.08)',
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '0.4rem 1rem',
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          maxWidth: '650px',
-          width: '100%',
-          justifyContent: 'space-between',
-        }}>
+      <nav className="bottom-navbar">
+        <div className="bottom-nav-inner">
           <button
             className={`view-tab-btn ${activeView === 'DASHBOARD' ? 'active' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
             onClick={() => setActiveView('DASHBOARD')}
+            id="nav-dashboard"
           >
-            <LayoutDashboard size={16} /> <span>Dashboard</span>
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
           </button>
           <button
             className={`view-tab-btn ${activeView === 'BOARD' ? 'active' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
             onClick={() => setActiveView('BOARD')}
+            id="nav-kanban"
           >
-            <Kanban size={16} /> <span>Kanban</span>
+            <Kanban size={18} />
+            <span>Kanban</span>
           </button>
           <button
             className={`view-tab-btn ${activeView === 'BACKLOG' ? 'active' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
             onClick={() => setActiveView('BACKLOG')}
+            id="nav-backlog"
           >
-            <ListTodo size={16} /> <span>Backlog</span>
+            <ListTodo size={18} />
+            <span>Backlog</span>
           </button>
           <button
             className={`view-tab-btn ${activeView === 'MEMBERS' ? 'active' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
             onClick={() => setActiveView('MEMBERS')}
+            id="nav-team"
           >
-            <Users size={16} /> <span>Team</span>
+            <Users size={18} />
+            <span>Team</span>
           </button>
           <button
             className={`view-tab-btn ${activeView === 'PROFILE' ? 'active' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', padding: '0.5rem 0.75rem' }}
             onClick={() => setActiveView('PROFILE')}
+            id="nav-profile"
           >
-            <User size={16} /> <span>Profile</span>
+            <User size={18} />
+            <span>Profile</span>
           </button>
         </div>
       </nav>

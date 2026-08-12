@@ -159,7 +159,7 @@ export function sanitizeAndDeduplicateMembers(inputMembers: Member[]): Member[] 
         id: existing.id || raw.id,
         email: preferLogmark ? email : existing.email,
         name: existing.name || name,
-        role: existing.role || raw.role || 'EMPLOYEE',
+        role: existing.role || raw.role || 'INTERN',
         avatarColor: existing.avatarColor || raw.avatarColor || '#3b82f6',
       };
       if (preferLogmark) {
@@ -175,7 +175,7 @@ export function sanitizeAndDeduplicateMembers(inputMembers: Member[]): Member[] 
         id: raw.id || `MEM-${Math.floor(1000 + Math.random() * 9000)}`,
         name: name || newEmail.split('@')[0],
         email: newEmail,
-        role: raw.role || ORG_MEMBER_EMAIL_ROLES[newEmail] || 'EMPLOYEE',
+        role: raw.role || ORG_MEMBER_EMAIL_ROLES[newEmail] || 'INTERN',
         avatarColor: raw.avatarColor || '#3b82f6',
       });
     }
